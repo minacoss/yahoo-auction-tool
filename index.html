@@ -736,9 +736,9 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       </div>
       <details class="more">
         <summary>読み取った商品を確認する(タップで除外・復活)</summary>
-        <p class="note" style="margin:8px 0">薄い行は分析から外れている商品です。点線の枠は、カテゴリ・下限・極端な値段の条件で自動的に外れたものです。</p>
+        <p class="note" style="margin:8px 0">薄い行は分析から外れている商品です。点線の枠は、カテゴリ・下限・極端に安い値段の条件で自動的に外れたものです。</p>
         <div class="plist" id="priceChips"></div>
-        <label class="check" style="margin-top:8px"><input type="checkbox" id="autoOut" checked>極端な値段を自動で外す</label>
+        <label class="check" style="margin-top:8px"><input type="checkbox" id="autoOut" checked>極端に安い値段を自動で外す(高い値段は外しません)</label>
       </details>
     </section>
 
@@ -1056,7 +1056,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     var all = item.prices.filter(function (p) { return !p.off && catOk(p); }).map(function (p) { return p.v; });
     var manual = all.filter(function (v) { return v >= floor; });
     var f = fences(manual);
-    var isOut = function (v) { return v < floor || (db.autoOut && manual.length >= 5 && (v < f[0] || v > f[1])); };
+    var isOut = function (v) { return v < floor || (db.autoOut && manual.length >= 5 && v < f[0]); };
     var used = manual.filter(function (v) { return !isOut(v); }).sort(function (a, b) { return a - b; });
     return {
       used: used, isOut: isOut, catOk: catOk, total: item.prices.length, floorSuggest: suggestFloor(all),
