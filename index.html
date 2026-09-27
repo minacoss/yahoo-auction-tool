@@ -729,6 +729,8 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       <div class="stats" id="stats"></div>
       <div class="chart" id="chart"></div>
       <h2 style="margin-top:4px">入札額の提案</h2>
+      <label class="check" style="margin-bottom:4px"><input type="checkbox" id="noHigh" checked>極端に高い値段は入札額の計算に入れない</label>
+      <p class="note" id="highNote" style="margin:0 0 8px" hidden></p>
       <div class="plans" id="plans"></div>
       <p class="note">勝てる確率は「過去の落札がその値段以下だった割合」をもとにした目安です。同じ物でも状態や付属品で値段は変わります。</p>
       <div class="btn-row">
@@ -950,6 +952,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   try { db = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
   if (!db || !db.items) db = { items: [sampleItem()], sel: "sample", autoOut: true };
   if (db.noJunk == null) db.noJunk = true;
+  if (db.noHigh == null) db.noHigh = true;
   function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
 
   function yen(v) { return "¥" + Math.round(v).toLocaleString("ja-JP"); }
@@ -1058,7 +1061,11 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     var f = fences(manual);
     var isOut = function (v) { return v < floor || (db.autoOut && manual.length >= 5 && v < f[0]); };
     var used = manual.filter(function (v) { return !isOut(v); }).sort(function (a, b) { return a - b; });
+    // 入札額の提案用:極端に高い値段を除いた価格(相場の表示には含める)
+    var hf = fences(used)[1];
+    var bid = db.noHigh && used.length >= 5 ? used.filter(function (v) { return v <= hf; }) : used;
     return {
+      bid: { p25: quantile(bid, 0.25), med: quantile(bid, 0.5), p75: quantile(bid, 0.75), cut: used.length - bid.length, over: hf },
       used: used, isOut: isOut, catOk: catOk, total: item.prices.length, floorSuggest: suggestFloor(all),
       p25: quantile(used, 0.25), med: quantile(used, 0.5), p75: quantile(used, 0.75),
       min: used[0] || 0, max: used[used.length - 1] || 0,
@@ -1100,7 +1107,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
         '<rect class="binhit" x="' + (L + bw * i) + '" y="' + T + '" width="' + bw + '" height="' + (H - T - B) + '"/>' +
         (path ? '<path class="binbar" d="' + path + '"/>' : '') + '</g>';
     });
-    [[a.p25, "安く"], [a.med, "標準"], [a.p75, "確実"]].forEach(function (m, i) {
+    [[a.bid.p25, "安く"], [a.bid.med, "標準"], [a.bid.p75, "確実"]].forEach(function (m, i) {
       var mx = x(m[0]);
       svg += '<line class="mark" x1="' + mx + '" x2="' + mx + '" y1="' + (T - 4) + '" y2="' + (H - B) + '"/>' +
         '<text class="marklabel" x="' + mx + '" y="' + (T - 8 - (i === 1 ? 0 : 0)) + '" text-anchor="' + (i === 0 ? "end" : i === 2 ? "start" : "middle") + '">' + m[1] + '</text>';
@@ -1137,6 +1144,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     var a = analyze(it);
     $("analysis").hidden = !it.prices.length;
     $("autoOut").checked = db.autoOut;
+    $("noHigh").checked = db.noHigh;
     $("noJunk").checked = db.noJunk;
     $("junkWords").textContent = "除外する言葉:" + JUNK_WORDS.join("・");
     $("junkWords").hidden = !db.noJunk;
@@ -1154,10 +1162,12 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       }).join("");
       renderChart(a);
       var plans = [
-        ["安く狙う", a.p25, "過去の落札の約25%がこの値段以下。何度か挑戦するつもりで。", false],
-        ["標準", a.med, "過去の落札のちょうど半分がこの値段以下。まずはここから。", true],
-        ["確実に取る", a.p75, "過去の落札の約75%がこの値段以下。早く確実にほしいとき。", false]
+        ["安く狙う", a.bid.p25, "過去の落札の約25%がこの値段以下。何度か挑戦するつもりで。", false],
+        ["標準", a.bid.med, "過去の落札のちょうど半分がこの値段以下。まずはここから。", true],
+        ["確実に取る", a.bid.p75, "過去の落札の約75%がこの値段以下。早く確実にほしいとき。", false]
       ];
+      $("highNote").hidden = !a.bid.cut;
+      $("highNote").textContent = yen(a.bid.over) + " を超える " + a.bid.cut + "件を除いて計算しています(相場の表示には含めています)。";
       $("plans").innerHTML = plans.map(function (p) {
         var v = roundBid(p[1]);
         return '<div class="plan' + (p[3] ? " main" : "") + '"><h3>' + p[0] + '</h3><div class="price">' + yen(v) + '</div><p>' + p[2] + '</p>' +
@@ -1358,7 +1368,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   });
   $("toResale").addEventListener("click", function () {
     var it = cur(); if (!it) return;
-    sendToBid({ resell: roundBid(analyze(it).p25) }, "resale");
+    sendToBid({ resell: roundBid(analyze(it).bid.p25) }, "resale");
   });
   $("catChips").addEventListener("click", function (e) {
     var b = e.target.closest("[data-cat]"), it = cur();
@@ -1392,6 +1402,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   });
   $("noJunk").addEventListener("change", function () { db.noJunk = $("noJunk").checked; save(); renderDetail(); });
   $("autoOut").addEventListener("change", function () { db.autoOut = $("autoOut").checked; save(); renderDetail(); });
+  $("noHigh").addEventListener("change", function () { db.noHigh = $("noHigh").checked; save(); renderDetail(); });
 
   render();
 })();
