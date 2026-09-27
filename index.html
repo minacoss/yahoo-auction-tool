@@ -379,11 +379,11 @@ textarea#paste:focus { outline: none; border-color: var(--accent); }
 .msg.bad { color: var(--bad); }
 .msg.good { color: var(--good); }
 
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-@media (max-width: 520px) { .stats { grid-template-columns: repeat(2, 1fr); } }
-.stat { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
 .stat span { font-size: 12px; color: var(--muted); }
 .stat b { font-family: var(--font-num); font-size: 17px; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) { .stat { padding: 8px 6px; } .stat b { font-size: 13px; } }
 
 .chart { position: relative; }
 .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
@@ -1068,8 +1068,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       bid: { p25: quantile(bid, 0.25), med: quantile(bid, 0.5), p75: quantile(bid, 0.75), cut: used.length - bid.length, over: hf },
       used: used, isOut: isOut, catOk: catOk, total: item.prices.length, floorSuggest: suggestFloor(all),
       p25: quantile(used, 0.25), med: quantile(used, 0.5), p75: quantile(used, 0.75),
-      min: used[0] || 0, max: used[used.length - 1] || 0,
-      avg: used.length ? used.reduce(function (a, b) { return a + b; }, 0) / used.length : 0
+      min: used[0] || 0, max: used[used.length - 1] || 0
     };
   }
   function roundBid(v) { return Math.floor(v / 10) * 10; }
@@ -1157,7 +1156,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       var fs = a.floorSuggest;
       $("floorSuggestRow").hidden = !fs || fs === (it.minPrice || 0);
       if (fs) { $("floorSuggestBtn").textContent = "おすすめ:" + yen(fs) + " 未満を除く"; $("floorSuggestBtn").dataset.v = fs; }
-      $("stats").innerHTML = [["中央値", a.med], ["平均", a.avg], ["最安", a.min], ["最高", a.max]].map(function (s) {
+      $("stats").innerHTML = [["中央値", a.med], ["最安", a.min], ["最高", a.max]].map(function (s) {
         return '<div class="stat"><span>' + s[0] + '</span><b>' + yen(s[1]) + '</b></div>';
       }).join("");
       renderChart(a);
