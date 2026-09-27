@@ -422,6 +422,29 @@ textarea#paste:focus { outline: none; border-color: var(--accent); }
 .plan p { margin: 0; font-size: 12px; color: var(--muted); }
 .plan .btn { margin-top: 4px; font-size: 13px; padding: 6px 10px; }
 
+.cat-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.plist { display: grid; gap: 4px; margin-top: 8px; }
+.prow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 10px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.prow b { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 14px; grid-row: 1 / span 2; align-self: center; min-width: 6.5em; text-align: right; }
+.prow .pt { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prow .pc { font-size: 11px; color: var(--muted); }
+.prow.off { opacity: 0.45; }
+.prow.off b { text-decoration: line-through; }
+.prow.out { border-style: dashed; }
+.prow:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .chips.prices .chip { font-family: var(--font-num); }
 .chips.prices .chip.off { text-decoration: line-through; opacity: 0.5; }
 .chips.prices .chip.out { border-style: dashed; }
@@ -637,7 +660,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       <ol class="steps">
         <li>
           <strong>ヤフオクで落札相場を開く</strong>
-          <p class="how">過去120日ほどの「実際に売れた値段」の一覧が開きます。</p>
+          <p class="how">過去180日ほどの「実際に売れた値段」の一覧が開きます。</p>
           <label class="check" style="margin-bottom:8px"><input type="checkbox" id="noJunk" checked>ジャンク品を除く</label>
           <p class="note" id="junkWords" style="margin:-4px 0 8px"></p>
           <div class="btn-row">
@@ -690,6 +713,11 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     <section class="card" id="analysis">
       <h2>分析結果</h2>
       <p class="lead" id="aLead"></p>
+      <div class="field" id="catField" hidden>
+        <span style="font-size:13px;font-weight:500">分析するカテゴリ</span>
+        <div class="cat-chips" id="catChips"></div>
+        <span class="hint">いちばん多いカテゴリだけを自動で選んでいます。パーツやケースなど別の物を外すためです。</span>
+      </div>
       <div class="field">
         <label for="minPrice">この値段より安い物は除く</label>
         <div class="yen"><span>¥</span><input id="minPrice" type="number" inputmode="numeric" min="0" step="100" placeholder="0(除かない)"></div>
@@ -707,9 +735,9 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
         <button class="btn ghost" type="button" id="toResale">転売の「売れそうな価格」に使う(控えめな額)</button>
       </div>
       <details class="more">
-        <summary>読み取った値段を確認する(タップで除外・復活)</summary>
-        <p class="note" style="margin:8px 0">点線の枠は、極端に高い・安いため自動で外した値段です。</p>
-        <div class="chips prices" id="priceChips"></div>
+        <summary>読み取った商品を確認する(タップで除外・復活)</summary>
+        <p class="note" style="margin:8px 0">薄い行は分析から外れている商品です。点線の枠は、カテゴリ・下限・極端な値段の条件で自動的に外れたものです。</p>
+        <div class="plist" id="priceChips"></div>
         <label class="check" style="margin-top:8px"><input type="checkbox" id="autoOut" checked>極端な値段を自動で外す</label>
       </details>
     </section>
@@ -934,7 +962,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
 
   // 貼り付けた文字から落札価格らしい数字を拾う
   // ジャンク品とその同義語(検索では「-語」を付けて除外)
-  var JUNK_WORDS = ["ジャンク", "現状品", "部品取り", "動作未確認", "通電のみ", "故障", "破損", "訳あり", "難あり"];
+  var JUNK_WORDS = ["ジャンク", "現状品", "部品取り", "動作未確認", "通電のみ", "故障", "破損", "訳あり", "訳有", "難あり", "難有"];
   var JUNK_RE = new RegExp(JUNK_WORDS.join("|"));
   var SKIP = /送料|開始|平均|最安|最高|相場|ポイント|以上|以下|〜|～|税|クーポン|手数料/;
   // 見出し(「開始」など)と値段が別の行に分かれていても判定できるよう、直前の行も見る
@@ -978,6 +1006,26 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     return out;
   }
 
+  // 落札相場ページの並び(カテゴリ → 商品名 → 落札 → 値段)から、商品ごとに読み取る
+  function parseItems(text) {
+    var L = text.split(/\r?\n/).map(function (x) { return x.trim(); }).filter(Boolean);
+    var items = [];
+    for (var i = 1; i < L.length - 1; i++) {
+      if (L[i] !== "落札") continue;
+      var pm = /^(\d{1,3}(?:,\d{3})+|\d+)円$/.exec(L[i + 1]);
+      if (!pm) continue;
+      var title = L[i - 1], cat = [];
+      for (var j = i - 2; j >= 0 && cat.length < 3; j--) {
+        var w = L[j];
+        if (w === "送料無料") continue;
+        if (w === "出品" || w.length > 20 || /円|発送|%|終了|件|条件/.test(w)) break;
+        cat.unshift(w);
+      }
+      items.push({ v: +pm[1].replace(/,/g, ""), t: title, c: cat.slice(0, 2).join(" > ") || "不明" });
+    }
+    return items;
+  }
+
   // 付属品などの安い値段と本体の値段の「大きな段差」を探して、下限の候補を出す
   function suggestFloor(values) {
     var s = values.slice().sort(function (a, b) { return a - b; }), n = s.length, best = null;
@@ -1004,13 +1052,14 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   }
   function analyze(item) {
     var floor = item.minPrice || 0;
-    var all = item.prices.filter(function (p) { return !p.off; }).map(function (p) { return p.v; });
+    var catOk = function (p) { return !item.cats || !p.c || item.cats[p.c] !== false; };
+    var all = item.prices.filter(function (p) { return !p.off && catOk(p); }).map(function (p) { return p.v; });
     var manual = all.filter(function (v) { return v >= floor; });
     var f = fences(manual);
     var isOut = function (v) { return v < floor || (db.autoOut && manual.length >= 5 && (v < f[0] || v > f[1])); };
     var used = manual.filter(function (v) { return !isOut(v); }).sort(function (a, b) { return a - b; });
     return {
-      used: used, isOut: isOut, total: item.prices.length, floorSuggest: suggestFloor(all),
+      used: used, isOut: isOut, catOk: catOk, total: item.prices.length, floorSuggest: suggestFloor(all),
       p25: quantile(used, 0.25), med: quantile(used, 0.5), p75: quantile(used, 0.75),
       min: used[0] || 0, max: used[used.length - 1] || 0,
       avg: used.length ? used.reduce(function (a, b) { return a + b; }, 0) / used.length : 0
@@ -1114,9 +1163,20 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
         return '<div class="plan' + (p[3] ? " main" : "") + '"><h3>' + p[0] + '</h3><div class="price">' + yen(v) + '</div><p>' + p[2] + '</p>' +
           '<button type="button" class="btn' + (p[3] ? "" : " ghost") + '" data-bid="' + v + '">この額で入札計算へ</button></div>';
       }).join("");
-      $("priceChips").innerHTML = it.prices.map(function (p, i) {
-        var cls = p.off ? " off" : a.isOut(p.v) ? " out" : "";
-        return '<button type="button" class="chip' + cls + '" data-i="' + i + '">' + yen(p.v) + '</button>';
+      var order = it.prices.map(function (p, i) { return i; }).sort(function (x, y) { return it.prices[y].v - it.prices[x].v; });
+      $("priceChips").innerHTML = order.map(function (i) {
+        var p = it.prices[i], auto = !a.catOk(p) || a.isOut(p.v);
+        var cls = p.off ? " off" : auto ? " out off" : "";
+        return '<button type="button" class="prow' + cls + '" data-i="' + i + '"><b>' + yen(p.v) + '</b>' +
+          '<span class="pt">' + esc(p.t || "(商品名なし)") + '</span><span class="pc">' + esc(p.c || "") + '</span></button>';
+      }).join("");
+      var counts = {};
+      it.prices.forEach(function (p) { if (p.c) counts[p.c] = (counts[p.c] || 0) + 1; });
+      var keys = Object.keys(counts).sort(function (x, y) { return counts[y] - counts[x]; });
+      $("catField").hidden = keys.length < 2;
+      $("catChips").innerHTML = keys.map(function (k) {
+        var on = !it.cats || it.cats[k] !== false;
+        return '<button type="button" class="chip' + (on ? " on" : "") + '" data-cat="' + esc(k) + '" aria-pressed="' + on + '">' + esc(k) + '(' + counts[k] + ')</button>';
       }).join("");
     }
     var hs = it.history.slice().reverse();
@@ -1239,17 +1299,33 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       renderDetail();
       return;
     }
-    var found = parsePrices(text);
+    var rich = parseItems(text), junkCut = 0;
+    if (db.noJunk) {
+      var before = rich.length;
+      rich = rich.filter(function (x) { return !JUNK_RE.test(x.t); });
+      junkCut = before - rich.length;
+    }
+    var found = rich.length >= 3 ? rich : parsePrices(text).map(function (v) { return { v: v }; });
     if (!found.length) {
       save(); render();
       msg.className = "msg bad";
       msg.textContent = "値段が見つかりませんでした。落札相場ページで取り込んだか確認してください。";
       return;
     }
-    var list = found.map(function (v) { return { v: v, off: false }; });
-    it.prices = $("appendChk").checked && !it.sample ? it.prices.concat(list) : list;
+    var list = found.map(function (f) { return { v: f.v, off: false, t: f.t, c: f.c }; });
+    var append = $("appendChk").checked && !it.sample;
+    it.prices = append ? it.prices.concat(list) : list;
     if (it.sample) { it.sample = false; it.history = []; }
-    if (!it.minPrice) it.minPrice = suggestFloor(it.prices.map(function (p) { return p.v; }));
+    // いちばん多いカテゴリだけを選ぶ(追加取り込みでは既存の選択を残す)
+    var counts = {};
+    it.prices.forEach(function (p) { if (p.c) counts[p.c] = (counts[p.c] || 0) + 1; });
+    var top = Object.keys(counts).sort(function (x, y) { return counts[y] - counts[x]; })[0];
+    if (!append || !it.cats) it.cats = {};
+    Object.keys(counts).forEach(function (k) { if (!(k in it.cats)) it.cats[k] = k === top; });
+    if (!append || !it.minPrice) {
+      it.minPrice = 0;
+      it.minPrice = suggestFloor(analyze(it).used);
+    }
     var a = analyze(it);
     var h = { date: today(), n: a.used.length, med: roundBid(a.med) };
     var last = it.history[it.history.length - 1];
@@ -1257,7 +1333,8 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     $("paste").value = "";
     save(); render();
     msg.className = "msg good";
-    msg.textContent = "「" + it.kw + "」に" + found.length + "件の値段を取り込みました。";
+    msg.textContent = "「" + it.kw + "」に" + found.length + "件の商品を取り込みました。" +
+      (junkCut ? "(商品名にジャンク相当の言葉があった" + junkCut + "件は除外)" : "");
     $("analysis").scrollIntoView({ behavior: "smooth", block: "start" });
   }
   $("paste").addEventListener("paste", function () {
@@ -1282,6 +1359,15 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   $("toResale").addEventListener("click", function () {
     var it = cur(); if (!it) return;
     sendToBid({ resell: roundBid(analyze(it).p25) }, "resale");
+  });
+  $("catChips").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-cat]"), it = cur();
+    if (!b || !it) return;
+    it.cats = it.cats || {};
+    it.cats[b.dataset.cat] = it.cats[b.dataset.cat] === false;
+    var a = analyze(it), last = it.history[it.history.length - 1];
+    if (last && last.date === today() && a.used.length) { last.n = a.used.length; last.med = roundBid(a.med); }
+    save(); renderList(); renderDetail();
   });
   $("priceChips").addEventListener("click", function (e) {
     var b = e.target.closest("[data-i]"), it = cur();
