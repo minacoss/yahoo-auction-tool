@@ -637,7 +637,8 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       <ol class="steps">
         <li>
           <strong>ヤフオクで落札相場を開く</strong>
-          <p class="how">過去120日ほどの「実際に売れた値段」の一覧が開きます。ジャンク品などを除きたいときは、開いたページで条件を絞ってください。</p>
+          <p class="how">過去120日ほどの「実際に売れた値段」の一覧が開きます。</p>
+          <label class="check" style="margin-bottom:8px"><input type="checkbox" id="noJunk" checked>ジャンク品を除く(検索ワードに「-ジャンク」を付けて開きます)</label>
           <div class="btn-row">
             <a class="btn" id="linkClosed" target="_blank" rel="noopener">落札相場を開く ↗</a>
             <a class="btn ghost" id="linkOpen" target="_blank" rel="noopener">いま出品中の物を見る ↗</a>
@@ -911,6 +912,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   var db;
   try { db = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
   if (!db || !db.items) db = { items: [sampleItem()], sel: "sample", autoOut: true };
+  if (db.noJunk == null) db.noJunk = true;
   function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
 
   function yen(v) { return "¥" + Math.round(v).toLocaleString("ja-JP"); }
@@ -928,6 +930,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     var re = /(\d{1,3}(?:,\d{3})+|\d+)\s*円/g, m;
     lines.forEach(function (line) {
       if (SKIP.test(line)) return;
+      if (db.noJunk && /ジャンク/.test(line)) return;
       re.lastIndex = 0;
       while ((m = re.exec(line))) {
         var v = +m[1].replace(/,/g, "");
@@ -1031,13 +1034,14 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     ["research", "analysis", "history"].forEach(function (id) { $(id).hidden = !it; });
     if (!it) return;
     $("rTitle").textContent = "「" + it.kw + "」を調べる";
-    var q = encodeURIComponent(it.kw);
+    var q = encodeURIComponent(it.kw + (db.noJunk ? " -ジャンク" : ""));
     $("linkClosed").href = "https://auctions.yahoo.co.jp/closedsearch/closedsearch?p=" + q;
     $("linkOpen").href = "https://auctions.yahoo.co.jp/search/search?p=" + q;
 
     var a = analyze(it);
     $("analysis").hidden = !it.prices.length;
     $("autoOut").checked = db.autoOut;
+    $("noJunk").checked = db.noJunk;
     if (it.prices.length) {
       var few = a.used.length < 5;
       $("aLead").innerHTML = (it.sample ? "<b>これは例のデータです。</b>" : "") + a.used.length + "件の落札価格から分析しました" +
@@ -1165,6 +1169,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       var kw = m[1].trim();
       text = text.slice(m[0].length);
       if (kw) {
+        kw = kw.split(/\s+/).filter(function (w) { return w && w.charAt(0) !== "-"; }).join(" ");
         var norm = function (x) { return x.replace(/\s+/g, " ").trim().toLowerCase(); };
         var hit = db.items.filter(function (i) { return norm(i.kw) === norm(kw); })[0];
         if (!hit) {
@@ -1231,6 +1236,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     p.off = !p.off;
     save(); renderDetail(); $("priceChips").closest("details").open = true;
   });
+  $("noJunk").addEventListener("change", function () { db.noJunk = $("noJunk").checked; save(); renderDetail(); });
   $("autoOut").addEventListener("change", function () { db.autoOut = $("autoOut").checked; save(); renderDetail(); });
 
   render();
