@@ -638,7 +638,8 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
         <li>
           <strong>ヤフオクで落札相場を開く</strong>
           <p class="how">過去120日ほどの「実際に売れた値段」の一覧が開きます。</p>
-          <label class="check" style="margin-bottom:8px"><input type="checkbox" id="noJunk" checked>ジャンク品を除く(検索ワードに「-ジャンク」を付けて開きます)</label>
+          <label class="check" style="margin-bottom:8px"><input type="checkbox" id="noJunk" checked>ジャンク品を除く</label>
+          <p class="note" id="junkWords" style="margin:-4px 0 8px"></p>
           <div class="btn-row">
             <a class="btn" id="linkClosed" target="_blank" rel="noopener">落札相場を開く ↗</a>
             <a class="btn ghost" id="linkOpen" target="_blank" rel="noopener">いま出品中の物を見る ↗</a>
@@ -924,13 +925,16 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   function cur() { return db.items.filter(function (i) { return i.id === db.sel; })[0] || null; }
 
   // 貼り付けた文字から落札価格らしい数字を拾う
+  // ジャンク品とその同義語(検索では「-語」を付けて除外)
+  var JUNK_WORDS = ["ジャンク", "現状品", "部品取り", "動作未確認", "通電のみ", "故障", "破損", "訳あり", "難あり"];
+  var JUNK_RE = new RegExp(JUNK_WORDS.join("|"));
   var SKIP = /送料|開始|平均|最安|最高|相場|ポイント|以上|以下|〜|～|税|クーポン|手数料/;
   function parsePrices(text) {
     var out = [], lines = text.split(/\r?\n/);
     var re = /(\d{1,3}(?:,\d{3})+|\d+)\s*円/g, m;
     lines.forEach(function (line) {
       if (SKIP.test(line)) return;
-      if (db.noJunk && /ジャンク/.test(line)) return;
+      if (db.noJunk && JUNK_RE.test(line)) return;
       re.lastIndex = 0;
       while ((m = re.exec(line))) {
         var v = +m[1].replace(/,/g, "");
@@ -1034,7 +1038,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     ["research", "analysis", "history"].forEach(function (id) { $(id).hidden = !it; });
     if (!it) return;
     $("rTitle").textContent = "「" + it.kw + "」を調べる";
-    var q = encodeURIComponent(it.kw + (db.noJunk ? " -ジャンク" : ""));
+    var q = encodeURIComponent(it.kw + (db.noJunk ? " " + JUNK_WORDS.map(function (w) { return "-" + w; }).join(" ") : ""));
     $("linkClosed").href = "https://auctions.yahoo.co.jp/closedsearch/closedsearch?p=" + q;
     $("linkOpen").href = "https://auctions.yahoo.co.jp/search/search?p=" + q;
 
@@ -1042,6 +1046,8 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     $("analysis").hidden = !it.prices.length;
     $("autoOut").checked = db.autoOut;
     $("noJunk").checked = db.noJunk;
+    $("junkWords").textContent = "除外する言葉:" + JUNK_WORDS.join("・");
+    $("junkWords").hidden = !db.noJunk;
     if (it.prices.length) {
       var few = a.used.length < 5;
       $("aLead").innerHTML = (it.sample ? "<b>これは例のデータです。</b>" : "") + a.used.length + "件の落札価格から分析しました" +
