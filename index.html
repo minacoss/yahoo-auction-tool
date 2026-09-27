@@ -626,11 +626,15 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
           </div>
         </li>
         <li>
-          <strong>ページの内容をコピーして貼り付ける</strong>
-          <p class="how">パソコンは Ctrl+A(Macは ⌘+A)→ Ctrl+C。スマホは文字を長押しして「すべて選択」→「コピー」。値段の数字だけを1行ずつ貼っても使えます。</p>
-          <textarea id="paste" placeholder="ここに貼り付け"></textarea>
+          <strong>開いたページで「作戦ノートに取り込む」ブックマークを押す</strong>
+          <p class="how">ページの内容が、検索ワード付きでコピーされます。ブックマークの登録がまだなら、下の「取り込みボタンの準備」を先に済ませてください。</p>
+        </li>
+        <li>
+          <strong>ここに戻って貼り付ける</strong>
+          <p class="how">パソコンは、このタブを開いて Ctrl+V(Macは ⌘+V)を押すだけです。スマホは下の枠を長押しして「ペースト」します。貼り付けると自動で読み取り、同じワードのリストに振り分けます。</p>
+          <textarea id="paste" placeholder="ここに貼り付け(値段の数字を1行ずつ入れても使えます)"></textarea>
           <div class="btn-row" style="margin-top:8px;align-items:center">
-            <button class="btn" type="button" id="parseBtn">読み取る</button>
+            <button class="btn ghost" type="button" id="parseBtn">読み取る</button>
             <label class="check"><input type="checkbox" id="appendChk">前のデータに追加する(2ページ目以降など)</label>
           </div>
           <p class="msg" id="parseMsg" aria-live="polite"></p>
@@ -638,6 +642,31 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       </ol>
     </section>
 
+    <section class="card">
+      <details class="more" id="setupBox">
+        <summary style="font-size:15px;font-weight:700;color:var(--ink)">取り込みボタンの準備(最初の1回だけ)</summary>
+        <div style="display:grid;gap:12px;margin-top:12px">
+          <p class="note" style="font-size:13px">ブラウザのブックマークに「取り込みボタン」を登録します。ヤフオクのページでこのブックマークを押すと、表示中のページの内容をコピーします。ヤフオクへの追加のアクセスはしません。</p>
+          <div class="btn-row">
+            <a class="btn" id="bmLink" href="#">作戦ノートに取り込む</a>
+            <button class="btn ghost" type="button" id="bmCopy">ボタンのコードをコピー</button>
+          </div>
+          <p class="msg" id="bmMsg" aria-live="polite"></p>
+          <div>
+            <strong style="font-size:14px">パソコン(Chrome・Edge・Safari)</strong>
+            <p class="how">上の青い「作戦ノートに取り込む」ボタンを、ブラウザのブックマークバーへドラッグします。ドラッグできないときは、どこかのページをブックマークし、名前を「作戦ノートに取り込む」、URLをコピーしたコードに書き換えます。</p>
+          </div>
+          <div>
+            <strong style="font-size:14px">iPhone(Safari)</strong>
+            <p class="how">①「ボタンのコードをコピー」を押す ② 適当なページで共有ボタン →「ブックマークを追加」→ 名前を「作戦ノートに取り込む」にして保存 ③ ブックマーク一覧でそのブックマークを「編集」し、アドレスを消してコピーしたコードを貼り付け。使うときは、ヤフオクのページでブックマーク一覧から選びます。</p>
+          </div>
+          <div>
+            <strong style="font-size:14px">Android(Chrome)</strong>
+            <p class="how">iPhoneと同じ手順でブックマークを作ります。使うときは、ヤフオクのページでアドレス欄に「作戦ノート」と入力し、候補に出たブックマークを選びます。</p>
+          </div>
+        </div>
+      </details>
+    </section>
     <section class="card" id="analysis">
       <h2>分析結果</h2>
       <p class="lead" id="aLead"></p>
@@ -1055,12 +1084,75 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     db.sel = b.dataset.id; $("parseMsg").textContent = ""; save(); render();
   });
   $("parseBtn").addEventListener("click", function () {
-    var it = cur(), msg = $("parseMsg");
-    if (!it) return;
-    var found = parsePrices($("paste").value);
-    if (!found.length) {
+    if (!$("paste").value.trim()) {
+      $("parseMsg").className = "msg bad";
+      $("parseMsg").textContent = "枠が空です。先に貼り付けてください。";
+      return;
+    }
+    importText($("paste").value);
+  });
+
+  // ヤフオクのページで押すブックマークレット(表示中のページの文字をコピーするだけ)
+  var BM_SRC = "(function(){" +
+    "if(!/auctions\\.yahoo\\.co\\.jp/.test(location.hostname)){alert('ヤフオクのページで押してください');return;}" +
+    "var kw='';try{kw=new URL(location.href).searchParams.get('p')||'';}catch(e){}" +
+    "var t='AUCNOTE1\\nkw='+kw+'\\n'+document.body.innerText;" +
+    "var ok='コピーしました。作戦ノートに戻って貼り付けてください。';" +
+    "function fb(){var a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;inset:10%;width:80%;height:60%;z-index:2147483647;font-size:12px';document.body.appendChild(a);a.focus();a.select();" +
+    "var r=false;try{r=document.execCommand('copy');}catch(e){}" +
+    "if(r){a.remove();alert(ok);}else{alert('自動でコピーできませんでした。表示された枠の中を長押しして「すべて選択」→「コピー」してください。');}}" +
+    "if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){alert(ok);},fb);}else{fb();}" +
+    "})();";
+  var BM_URL = "javascript:" + encodeURIComponent(BM_SRC);
+  $("bmLink").setAttribute("href", BM_URL);
+  $("bmLink").addEventListener("click", function (e) {
+    e.preventDefault();
+    $("bmMsg").className = "msg";
+    $("bmMsg").textContent = "このボタンはここでは押さずに、ブックマークバーへドラッグしてください。";
+  });
+  $("bmCopy").addEventListener("click", function () {
+    var msg = $("bmMsg");
+    function fallback() {
+      msg.className = "msg";
+      msg.innerHTML = '自動でコピーできませんでした。下の枠の文字をすべて選択してコピーしてください。<textarea readonly style="width:100%;height:80px;margin-top:6px;font-size:11px">' + esc(BM_URL) + '</textarea>';
+      var ta = msg.querySelector("textarea"); ta.focus(); ta.select();
+    }
+    try {
+      navigator.clipboard.writeText(BM_URL).then(function () {
+        msg.className = "msg good"; msg.textContent = "コードをコピーしました。ブックマークのURLに貼り付けてください。";
+      }, fallback);
+    } catch (e) { fallback(); }
+  });
+
+  // 貼り付けを取り込む(ブックマークレットの見出しがあればワードで振り分け)
+  function importText(text) {
+    var msg = $("parseMsg");
+    var m = /^AUCNOTE1\r?\nkw=(.*)\r?\n/.exec(text);
+    if (m) {
+      var kw = m[1].trim();
+      text = text.slice(m[0].length);
+      if (kw) {
+        var norm = function (x) { return x.replace(/\s+/g, " ").trim().toLowerCase(); };
+        var hit = db.items.filter(function (i) { return norm(i.kw) === norm(kw); })[0];
+        if (!hit) {
+          hit = { id: "w" + Date.now(), kw: kw, prices: [], history: [] };
+          db.items.unshift(hit);
+        }
+        db.sel = hit.id;
+      }
+    }
+    var it = cur();
+    if (!it) {
       msg.className = "msg bad";
-      msg.textContent = "値段が見つかりませんでした。落札相場ページの内容をまるごと貼り付けたか確認してください。";
+      msg.textContent = "先にほしい物リストにワードを追加してください。";
+      renderDetail();
+      return;
+    }
+    var found = parsePrices(text);
+    if (!found.length) {
+      save(); render();
+      msg.className = "msg bad";
+      msg.textContent = "値段が見つかりませんでした。落札相場ページで取り込んだか確認してください。";
       return;
     }
     var list = found.map(function (v) { return { v: v, off: false }; });
@@ -1070,11 +1162,24 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     var h = { date: today(), n: a.used.length, med: roundBid(a.med) };
     var last = it.history[it.history.length - 1];
     if (last && last.date === h.date) it.history[it.history.length - 1] = h; else it.history.push(h);
-    msg.className = "msg good";
-    msg.textContent = found.length + "件の値段を読み取りました。下の分析結果を確認してください。";
     $("paste").value = "";
     save(); render();
+    msg.className = "msg good";
+    msg.textContent = "「" + it.kw + "」に" + found.length + "件の値段を取り込みました。";
     $("analysis").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  $("paste").addEventListener("paste", function () {
+    setTimeout(function () { if ($("paste").value.trim()) importText($("paste").value); }, 0);
+  });
+  // パソコン:相場タブが開いていれば、どこで Ctrl+V しても取り込む
+  document.addEventListener("paste", function (e) {
+    if ($("p-market").hidden) return;
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+    var text = e.clipboardData && e.clipboardData.getData("text");
+    if (!text) return;
+    e.preventDefault();
+    importText(text);
   });
   $("plans").addEventListener("click", function (e) {
     var b = e.target.closest("[data-bid]");
