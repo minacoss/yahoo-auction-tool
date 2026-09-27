@@ -393,6 +393,35 @@ textarea#paste:focus { outline: none; border-color: var(--accent); }
 .chart .binhit { fill: transparent; cursor: default; }
 .chart .binhit:hover + .binbar, .chart g.on .binbar { opacity: 1; }
 .chart .mark { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.chart .binbar.faded { opacity: 0.25; }
+.chart .capzone { fill: var(--bad); opacity: 0.08; }
+.chart .capline { stroke: var(--bad); stroke-width: 2; }
+/* 赤線の位置を動かすスライダー(つまみの中心がグラフの左右端とそろうように配置) */
+.cap { display: grid; gap: 4px; margin-top: -8px; }
+.cap input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: calc(97.78% + 22px);
+  margin: 0 calc(1.11% - 11px);
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.cap input[type="range"]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: var(--line); }
+.cap input[type="range"]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--line); }
+.cap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px; height: 22px; margin-top: -9px;
+  border-radius: 50%; border: 3px solid var(--surface); background: var(--bad);
+  box-shadow: 0 0 0 1px var(--bad);
+}
+.cap input[type="range"]::-moz-range-thumb {
+  width: 16px; height: 16px;
+  border-radius: 50%; border: 3px solid var(--surface); background: var(--bad);
+  box-shadow: 0 0 0 1px var(--bad);
+}
+.cap-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 13px; }
+.cap-row .btn { font-size: 12px; padding: 3px 10px; }
 .chart .marklabel { fill: var(--ink); font-size: 11px; font-weight: 700; }
 .tip {
   position: absolute;
@@ -728,9 +757,13 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       </div>
       <div class="stats" id="stats"></div>
       <div class="chart" id="chart"></div>
+      <div class="cap" id="capBox" hidden>
+        <input type="range" id="capRange" aria-label="入札額の計算に入れる値段の上限">
+        <div class="cap-row"><span id="capText"></span><button type="button" class="btn ghost" id="capAuto" hidden>自動に戻す</button></div>
+        <span class="note">赤いつまみを動かすと、赤線より高い物を入札額の計算から外せます(中央値・最安・最高の表示には含めたままです)。</span>
+      </div>
       <h2 style="margin-top:4px">入札額の提案</h2>
-      <label class="check" style="margin-bottom:4px"><input type="checkbox" id="noHigh" checked>極端に高い値段は入札額の計算に入れない</label>
-      <p class="note" id="highNote" style="margin:0 0 8px" hidden></p>
+      <p class="note" id="highNote" style="margin:-4px 0 4px" hidden></p>
       <div class="plans" id="plans"></div>
       <p class="note">勝てる確率は「過去の落札がその値段以下だった割合」をもとにした目安です。同じ物でも状態や付属品で値段は変わります。</p>
       <div class="btn-row">
@@ -952,7 +985,6 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   try { db = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
   if (!db || !db.items) db = { items: [sampleItem()], sel: "sample", autoOut: true };
   if (db.noJunk == null) db.noJunk = true;
-  if (db.noHigh == null) db.noHigh = true;
   function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
 
   function yen(v) { return "¥" + Math.round(v).toLocaleString("ja-JP"); }
@@ -1061,11 +1093,14 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     var f = fences(manual);
     var isOut = function (v) { return v < floor || (db.autoOut && manual.length >= 5 && v < f[0]); };
     var used = manual.filter(function (v) { return !isOut(v); }).sort(function (a, b) { return a - b; });
-    // 入札額の提案用:極端に高い値段を除いた価格(相場の表示には含める)
-    var hf = fences(used)[1];
-    var bid = db.noHigh && used.length >= 5 ? used.filter(function (v) { return v <= hf; }) : used;
+    // 入札額の提案用:上限(赤線)より高い値段を除いた価格(相場の表示には含める)
+    // 上限を自分で動かしていなければ、極端に高い値段だけを外す位置を自動で使う
+    var top = used[used.length - 1] || 0;
+    var cap = item.maxPrice != null ? item.maxPrice : used.length >= 5 ? Math.min(fences(used)[1], top) : top;
+    var bid = used.filter(function (v) { return v <= cap; });
+    if (!bid.length) bid = used;
     return {
-      bid: { p25: quantile(bid, 0.25), med: quantile(bid, 0.5), p75: quantile(bid, 0.75), cut: used.length - bid.length, over: hf },
+      bid: { p25: quantile(bid, 0.25), med: quantile(bid, 0.5), p75: quantile(bid, 0.75), cut: used.length - bid.length, cap: cap, auto: item.maxPrice == null },
       used: used, isOut: isOut, catOk: catOk, total: item.prices.length, floorSuggest: suggestFloor(all),
       p25: quantile(used, 0.25), med: quantile(used, 0.5), p75: quantile(used, 0.75),
       min: used[0] || 0, max: used[used.length - 1] || 0
@@ -1097,6 +1132,8 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     var y = function (n) { return T + (H - T - B) * (1 - n / maxN); };
     var bw = (W - L - R) / nb, svg = "";
     svg += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + (H - B) + '" y2="' + (H - B) + '"/>';
+    var capOn = a.bid.cap < a.max, cx = x(Math.max(a.min, Math.min(a.bid.cap, a.max)));
+    if (capOn) svg += '<rect class="capzone" x="' + cx + '" y="' + (T - 4) + '" width="' + (W - R - cx) + '" height="' + (H - B - T + 4) + '"/>';
     bins.forEach(function (b, i) {
       var bx = L + bw * i + 1, w = bw - 2, top = y(b.n), h = H - B - top;
       var r = Math.min(4, w / 2, h);
@@ -1104,8 +1141,9 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
         'H' + (bx + w - r) + 'Q' + (bx + w) + ',' + top + ' ' + (bx + w) + ',' + (top + r) + 'V' + (H - B) + 'Z' : '';
       svg += '<g data-tip="' + yen(b.lo) + '〜' + yen(b.hi) + ':' + b.n + '件" data-x="' + (bx + w / 2) + '" data-y="' + top + '">' +
         '<rect class="binhit" x="' + (L + bw * i) + '" y="' + T + '" width="' + bw + '" height="' + (H - T - B) + '"/>' +
-        (path ? '<path class="binbar" d="' + path + '"/>' : '') + '</g>';
+        (path ? '<path class="binbar' + (capOn && b.lo >= a.bid.cap ? " faded" : "") + '" d="' + path + '"/>' : '') + '</g>';
     });
+    if (capOn) svg += '<line class="capline" x1="' + cx + '" x2="' + cx + '" y1="' + (T - 4) + '" y2="' + (H - B) + '"/>';
     [[a.bid.p25, "安く"], [a.bid.med, "標準"], [a.bid.p75, "確実"]].forEach(function (m, i) {
       var mx = x(m[0]);
       svg += '<line class="mark" x1="' + mx + '" x2="' + mx + '" y1="' + (T - 4) + '" y2="' + (H - B) + '"/>' +
@@ -1131,6 +1169,21 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     });
   }
 
+  function capStep(a) { var d = a.max - a.min; return d >= 100000 ? 1000 : d >= 10000 ? 100 : 10; }
+  function renderCap(a) {
+    var box = $("capBox"), rg = $("capRange"), it = cur();
+    box.hidden = a.used.length < 2 || a.max === a.min;
+    if (box.hidden) return;
+    var st = capStep(a);
+    rg.step = st;
+    rg.min = Math.floor(a.min / st) * st;
+    rg.max = Math.ceil(a.max / st) * st;
+    if (document.activeElement !== rg) rg.value = Math.min(a.bid.cap, a.max);
+    $("capText").textContent = (a.bid.cut ? "上限 " + yen(a.bid.cap) + "(" + a.bid.cut + "件を除外)" : "上限なし(すべて計算に入れています)") +
+      (a.bid.auto ? "・自動" : "");
+    $("capAuto").hidden = it.maxPrice == null;
+  }
+
   function renderDetail() {
     var it = cur();
     ["research", "analysis", "history"].forEach(function (id) { $(id).hidden = !it; });
@@ -1143,7 +1196,6 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     var a = analyze(it);
     $("analysis").hidden = !it.prices.length;
     $("autoOut").checked = db.autoOut;
-    $("noHigh").checked = db.noHigh;
     $("noJunk").checked = db.noJunk;
     $("junkWords").textContent = "除外する言葉:" + JUNK_WORDS.join("・");
     $("junkWords").hidden = !db.noJunk;
@@ -1166,7 +1218,8 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
         ["確実に取る", a.bid.p75, "過去の落札の約75%がこの値段以下。早く確実にほしいとき。", false]
       ];
       $("highNote").hidden = !a.bid.cut;
-      $("highNote").textContent = yen(a.bid.over) + " を超える " + a.bid.cut + "件を除いて計算しています(相場の表示には含めています)。";
+      $("highNote").textContent = "赤線(" + yen(a.bid.cap) + ")より高い " + a.bid.cut + "件を除いて計算しています。";
+      renderCap(a);
       $("plans").innerHTML = plans.map(function (p) {
         var v = roundBid(p[1]);
         return '<div class="plan' + (p[3] ? " main" : "") + '"><h3>' + p[0] + '</h3><div class="price">' + yen(v) + '</div><p>' + p[2] + '</p>' +
@@ -1330,6 +1383,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     it.prices.forEach(function (p) { if (p.c) counts[p.c] = (counts[p.c] || 0) + 1; });
     var top = Object.keys(counts).sort(function (x, y) { return counts[y] - counts[x]; })[0];
     if (!append || !it.cats) it.cats = {};
+    if (!append) delete it.maxPrice;
     Object.keys(counts).forEach(function (k) { if (!(k in it.cats)) it.cats[k] = k === top; });
     if (!append || !it.minPrice) {
       it.minPrice = 0;
@@ -1401,7 +1455,16 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   });
   $("noJunk").addEventListener("change", function () { db.noJunk = $("noJunk").checked; save(); renderDetail(); });
   $("autoOut").addEventListener("change", function () { db.autoOut = $("autoOut").checked; save(); renderDetail(); });
-  $("noHigh").addEventListener("change", function () { db.noHigh = $("noHigh").checked; save(); renderDetail(); });
+  $("capRange").addEventListener("input", function () {
+    var it = cur(); if (!it) return;
+    it.maxPrice = +$("capRange").value;
+    save(); renderDetail();
+  });
+  $("capAuto").addEventListener("click", function () {
+    var it = cur(); if (!it) return;
+    delete it.maxPrice;
+    save(); renderDetail();
+  });
 
   render();
 })();
