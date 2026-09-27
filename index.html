@@ -435,8 +435,9 @@ textarea#paste:focus { outline: none; border-color: var(--accent); }
   transform: translate(-50%, -110%);
 }
 
-.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-@media (max-width: 640px) { .plans { grid-template-columns: 1fr; } }
+.plans { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 760px) { .plans { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .plans { grid-template-columns: 1fr; } }
 .plan {
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -1100,7 +1101,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
     var bid = used.filter(function (v) { return v <= cap; });
     if (!bid.length) bid = used;
     return {
-      bid: { p25: quantile(bid, 0.25), med: quantile(bid, 0.5), p75: quantile(bid, 0.75), cut: used.length - bid.length, cap: cap, auto: item.maxPrice == null },
+      bid: { p10: quantile(bid, 0.1), p25: quantile(bid, 0.25), med: quantile(bid, 0.5), p75: quantile(bid, 0.75), cut: used.length - bid.length, cap: cap, auto: item.maxPrice == null },
       used: used, isOut: isOut, catOk: catOk, total: item.prices.length, floorSuggest: suggestFloor(all),
       p25: quantile(used, 0.25), med: quantile(used, 0.5), p75: quantile(used, 0.75),
       min: used[0] || 0, max: used[used.length - 1] || 0
@@ -1122,7 +1123,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   function renderChart(a) {
     var box = $("chart");
     if (a.used.length < 2 || a.max === a.min) { box.innerHTML = ""; return; }
-    var W = 360, H = 180, L = 4, R = 4, T = 22, B = 26;
+    var W = 360, H = 190, L = 4, R = 4, T = 36, B = 26;
     var nb = Math.max(5, Math.min(12, Math.ceil(Math.sqrt(a.used.length)) + 2));
     var step = (a.max - a.min) / nb, bins = [];
     for (var i = 0; i < nb; i++) bins.push({ lo: a.min + step * i, hi: a.min + step * (i + 1), n: 0 });
@@ -1144,10 +1145,11 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
         (path ? '<path class="binbar' + (capOn && b.lo >= a.bid.cap ? " faded" : "") + '" d="' + path + '"/>' : '') + '</g>';
     });
     if (capOn) svg += '<line class="capline" x1="' + cx + '" x2="' + cx + '" y1="' + (T - 4) + '" y2="' + (H - B) + '"/>';
-    [[a.bid.p25, "安く"], [a.bid.med, "標準"], [a.bid.p75, "確実"]].forEach(function (m, i) {
+    // ラベルが重ならないよう、上下2段に分けて置く
+    [[a.bid.p10, "最安", 12, "end"], [a.bid.p25, "安く", 28, "end"], [a.bid.med, "標準", 12, "middle"], [a.bid.p75, "確実", 28, "start"]].forEach(function (m) {
       var mx = x(m[0]);
-      svg += '<line class="mark" x1="' + mx + '" x2="' + mx + '" y1="' + (T - 4) + '" y2="' + (H - B) + '"/>' +
-        '<text class="marklabel" x="' + mx + '" y="' + (T - 8 - (i === 1 ? 0 : 0)) + '" text-anchor="' + (i === 0 ? "end" : i === 2 ? "start" : "middle") + '">' + m[1] + '</text>';
+      svg += '<line class="mark" x1="' + mx + '" x2="' + mx + '" y1="' + (m[2] + 4) + '" y2="' + (H - B) + '"/>' +
+        '<text class="marklabel" x="' + mx + '" y="' + m[2] + '" text-anchor="' + m[3] + '">' + m[1] + '</text>';
     });
     svg += '<text class="axis" x="' + L + '" y="' + (H - 8) + '">' + yen(a.min) + '</text>';
     svg += '<text class="axis" x="' + (W - R) + '" y="' + (H - 8) + '" text-anchor="end">' + yen(a.max) + '</text>';
@@ -1213,6 +1215,7 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       }).join("");
       renderChart(a);
       var plans = [
+        ["最安値付近で狙う", a.bid.p10, "過去の落札の約10%がこの値段以下。極端に安い物を除いた最安値の近く。気長に待てるときに。", false],
         ["安く狙う", a.bid.p25, "過去の落札の約25%がこの値段以下。何度か挑戦するつもりで。", false],
         ["標準", a.bid.med, "過去の落札のちょうど半分がこの値段以下。まずはここから。", true],
         ["確実に取る", a.bid.p75, "過去の落札の約75%がこの値段以下。早く確実にほしいとき。", false]
