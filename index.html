@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- APP START -->
+<title>オークション作戦ノート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=JetBrains+Mono:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --surface-2: #f6f8fb;
+  --ink: #17202b;
+  --muted: #5b6776;
+  --line: #d9e0e9;
+  --accent: #1f5fd1;
+  --accent-ink: #ffffff;
+  --accent-soft: #e5edfc;
+  --good: #17784a;
+  --good-soft: #e3f4ea;
+  --bad: #c0392b;
+  --bad-soft: #fbe7e4;
+  --seg-cost: #7c8799;
+  --seg-ship: #c29a3e;
+  --seg-fee: #c9604e;
+  --seg-profit: #17784a;
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  --font-display: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --font-num: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0f141b;
+    --surface: #18202a;
+    --surface-2: #1e2733;
+    --ink: #e7ecf2;
+    --muted: #9ba7b6;
+    --line: #2b3542;
+    --accent: #6f9dff;
+    --accent-ink: #0f141b;
+    --accent-soft: #1c2a45;
+    --good: #52c68f;
+    --good-soft: #15301f;
+    --bad: #ff7b6c;
+    --bad-soft: #3a1c19;
+    --seg-cost: #8894a6;
+    --seg-ship: #d4ae55;
+    --seg-fee: #e27a67;
+    --seg-profit: #52c68f;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f141b;
+  --surface: #18202a;
+  --surface-2: #1e2733;
+  --ink: #e7ecf2;
+  --muted: #9ba7b6;
+  --line: #2b3542;
+  --accent: #6f9dff;
+  --accent-ink: #0f141b;
+  --accent-soft: #1c2a45;
+  --good: #52c68f;
+  --good-soft: #15301f;
+  --bad: #ff7b6c;
+  --bad-soft: #3a1c19;
+  --seg-cost: #8894a6;
+  --seg-ship: #d4ae55;
+  --seg-fee: #e27a67;
+  --seg-profit: #52c68f;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.7;
+}
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding-inline: 16px;
+  padding-block: 20px 48px;
+}
+
+header.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding-block: 8px 16px;
+}
+header.top h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: 0.02em;
+  text-wrap: balance;
+}
+header.top p { margin: 0; color: var(--muted); font-size: 13px; }
+
+nav.tabs {
+  position: sticky;
+  top: env(safe-area-inset-top, 0px);
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+nav.tabs button {
+  flex: 1 0 auto;
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+nav.tabs button[aria-selected="true"] { background: var(--accent); color: var(--accent-ink); }
+nav.tabs button:focus-visible, .chip:focus-visible, input:focus-visible, .seg label:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+nav.tabs .soon { font-weight: 500; font-size: 11px; opacity: 0.8; }
+
+.panel { display: grid; gap: 16px; padding-top: 16px; }
+
+section.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+section.card > h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  text-wrap: balance;
+}
+section.card > .lead { margin: -8px 0 0; color: var(--muted); font-size: 13px; }
+
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+
+.fields { display: grid; gap: 12px; }
+.field { display: grid; gap: 4px; }
+.field label { font-size: 13px; font-weight: 500; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.yen {
+  display: flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding-inline: 12px;
+}
+.yen span { color: var(--muted); font-family: var(--font-num); font-size: 14px; }
+.yen input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-num);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  padding: 9px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: right;
+}
+.yen input:focus { outline: none; }
+.yen:focus-within { border-color: var(--accent); }
+
+.seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--surface-2);
+}
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label:has(input:checked) { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink);
+  cursor: pointer;
+}
+.chip.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+.result {
+  background: var(--surface-2);
+  border-radius: 12px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+.result .label { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+.big {
+  font-family: var(--font-num);
+  font-weight: 700;
+  font-size: clamp(28px, 7vw, 38px);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.big.good { color: var(--good); }
+.big.bad { color: var(--bad); }
+.pill {
+  justify-self: start;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+
+dl.rows { margin: 0; display: grid; gap: 4px; }
+dl.rows > div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+dl.rows dt { color: var(--muted); }
+dl.rows dd { margin: 0; font-family: var(--font-num); font-variant-numeric: tabular-nums; }
+dl.rows > div.total { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 2px; font-weight: 700; }
+dl.rows > div.total dt { color: var(--ink); }
+
+.bar {
+  display: flex;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--line);
+}
+.bar i { display: block; height: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.legend span::before {
+  content: "";
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 2px;
+  margin-right: 5px;
+  background: var(--c);
+}
+
+.tips { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; font-size: 14px; max-width: 65ch; }
+.tips b { font-weight: 700; }
+.note { font-size: 12px; color: var(--muted); margin: 0; }
+
+.inc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.inc-table td { padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.inc-table td:last-child { text-align: right; font-family: var(--font-num); }
+.inc-table tr.hit td { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
+
+.soon-card ol { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; max-width: 65ch; }
+.sample-flag { font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sample-flag button { font: inherit; font-size: 12px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
+</style>
+</head><!-- wrapper -->
+<body><!-- wrapper -->
+<div class="wrap">
+  <header class="top">
+    <h1>オークション作戦ノート</h1>
+    <p>ヤフオクで「いくらまで入札するか」「いくらで売るか」を決めるための計算ノート</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-bid" aria-controls="p-bid" aria-selected="true">入札する</button>
+    <button role="tab" id="tab-sell" aria-controls="p-sell" aria-selected="false">出品する</button>
+    <button role="tab" id="tab-market" aria-controls="p-market" aria-selected="false">相場を調べる <span class="soon">準備中</span></button>
+  </nav>
+
+  <p class="sample-flag" id="sampleFlag">最初に入っている数字は例です。自分の数字に書き換えると、すぐ計算し直されます。<button type="button" id="resetBtn">例の数字に戻す</button></p>
+
+  <!-- 入札 -->
+  <div class="panel" id="p-bid" role="tabpanel" aria-labelledby="tab-bid">
+    <section class="card">
+      <h2>入札の上限額を決める</h2>
+      <p class="lead">上限額を先に決めておくと、競り合いで熱くなって払いすぎるのを防げます。</p>
+      <div class="seg" role="radiogroup" aria-label="目的">
+        <label><input type="radio" name="bidMode" id="modeSelf" value="self" checked>自分で使う</label>
+        <label><input type="radio" name="bidMode" id="modeResale" value="resale">転売する</label>
+      </div>
+      <div class="cols">
+        <div class="fields">
+          <div class="field" data-mode="self">
+            <label for="budget">予算(送料込みで払える最大額)</label>
+            <div class="yen"><span>¥</span><input id="budget" type="number" inputmode="numeric" min="0" step="1"></div>
+          </div>
+          <div class="field" data-mode="resale">
+            <label for="resell">売れそうな価格</label>
+            <div class="yen"><span>¥</span><input id="resell" type="number" inputmode="numeric" min="0" step="1"></div>
+            <span class="hint">落札相場を見て、控えめな金額を入れるのがおすすめです</span>
+          </div>
+          <div class="field" data-mode="resale">
+            <label for="resFee">売るときの手数料率</label>
+            <div class="yen"><input id="resFee" type="number" inputmode="decimal" min="0" max="100" step="0.1"><span>%</span></div>
+          </div>
+          <div class="field" data-mode="resale">
+            <label for="resShip">売るときの送料(自分で払う分)</label>
+            <div class="yen"><span>¥</span><input id="resShip" type="number" inputmode="numeric" min="0" step="1"></div>
+          </div>
+          <div class="field" data-mode="resale">
+            <label for="goal">ほしい利益</label>
+            <div class="yen"><span>¥</span><input id="goal" type="number" inputmode="numeric" min="0" step="1"></div>
+          </div>
+          <div class="field">
+            <label for="shipIn">買うときの送料</label>
+            <div class="yen"><span>¥</span><input id="shipIn" type="number" inputmode="numeric" min="0" step="1"></div>
+            <span class="hint">商品ページの「送料」欄を見て入れます。送料無料なら 0</span>
+          </div>
+        </div>
+        <div class="result" aria-live="polite">
+          <span class="label">入札してよい上限額</span>
+          <div class="big" id="bidLimit">—</div>
+          <span class="pill" id="bidPill" hidden></span>
+          <dl class="rows" id="bidRows"></dl>
+          <p class="note" id="bidAdvice"></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>次にいくらから入札できるか</h2>
+      <p class="lead">ヤフオクには「入札単位」があり、現在価格に決まった額を足した金額からしか入札できません。</p>
+      <div class="cols">
+        <div class="fields">
+          <div class="field">
+            <label for="cur">いまの現在価格</label>
+            <div class="yen"><span>¥</span><input id="cur" type="number" inputmode="numeric" min="1" step="1"></div>
+            <span class="hint">まだ誰も入札していない商品は、開始価格ちょうどで入札できます</span>
+          </div>
+          <div class="result" aria-live="polite">
+            <span class="label">最低入札額</span>
+            <div class="big" id="minBid">—</div>
+            <dl class="rows" id="incRows"></dl>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="inc-table" id="incTable">
+            <tbody>
+              <tr data-max="999"><td>1円〜999円</td><td>10円ずつ</td></tr>
+              <tr data-max="4999"><td>1,000円〜4,999円</td><td>100円ずつ</td></tr>
+              <tr data-max="9999"><td>5,000円〜9,999円</td><td>250円ずつ</td></tr>
+              <tr data-max="49999"><td>10,000円〜49,999円</td><td>500円ずつ</td></tr>
+              <tr data-max="Infinity"><td>50,000円以上</td><td>1,000円ずつ</td></tr>
+            </tbody>
+          </table>
+          <p class="note" style="margin-top:8px">入札単位はヤフオク公式ヘルプの表をもとにしています。変わることがあるので、気になるときは公式ヘルプを確認してください。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>入札のコツ</h2>
+      <ul class="tips">
+        <li><b>上限額は一度で入れる。</b>ヤフオクの入札は、上限額を入れておくと他の人に抜かれた分だけ自動で値上げしてくれる仕組みです(ヤフオク自身の機能です)。少しずつ上げる必要はありません。</li>
+        <li><b>同じ上限額なら、先に入れた人が勝ちます。</b>迷っている間に同額を入れられると負けるので、決めたら早めに入れて大丈夫です。</li>
+        <li><b>終了間際の駆け込みは効きにくいことがあります。</b>「自動延長」が設定された商品は、終了5分前以降に価格が上がると終了時間が延びます。</li>
+        <li><b>評価と説明文を確認する。</b>出品者の評価、ジャンク・ノークレームの記載、送料の条件は入札前に見ておきましょう。</li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- 出品 -->
+  <div class="panel" id="p-sell" role="tabpanel" aria-labelledby="tab-sell" hidden>
+    <section class="card">
+      <h2>売れたらいくら残るか</h2>
+      <p class="lead">手数料と送料を引いた、本当の利益を計算します。</p>
+      <div class="cols">
+        <div class="fields">
+          <div class="field">
+            <label for="price">落札価格(売れる値段)</label>
+            <div class="yen"><span>¥</span><input id="price" type="number" inputmode="numeric" min="0" step="1"></div>
+          </div>
+          <div class="field">
+            <label for="cost">仕入れ値(買った値段)</label>
+            <div class="yen"><span>¥</span><input id="cost" type="number" inputmode="numeric" min="0" step="1"></div>
+            <span class="hint">家の不用品なら 0 で大丈夫です</span>
+          </div>
+          <div class="field">
+            <label for="shipOut">送料(自分で払う分)</label>
+            <div class="yen"><span>¥</span><input id="shipOut" type="number" inputmode="numeric" min="0" step="1"></div>
+            <span class="hint">「落札者負担」にするなら 0</span>
+          </div>
+          <div class="field">
+            <label for="pack">梱包材・その他の費用</label>
+            <div class="yen"><span>¥</span><input id="pack" type="number" inputmode="numeric" min="0" step="1"></div>
+          </div>
+          <div class="field">
+            <label for="fee">落札手数料率</label>
+            <div class="yen"><input id="fee" type="number" inputmode="decimal" min="0" max="100" step="0.1"><span>%</span></div>
+            <div class="chips">
+              <button type="button" class="chip" data-fee="10">一般 10%</button>
+              <button type="button" class="chip" data-fee="8.8">LYPプレミアム会員 8.8%</button>
+            </div>
+            <span class="hint">料率は変わることがあります。出品前に公式の案内で確認してください</span>
+          </div>
+        </div>
+        <div class="result" aria-live="polite">
+          <span class="label">手元に残る利益</span>
+          <div class="big" id="profit">—</div>
+          <span class="pill" id="profitPill" hidden></span>
+          <div class="bar" id="bar" aria-hidden="true"></div>
+          <div class="legend">
+            <span style="--c:var(--seg-cost)">仕入れ</span>
+            <span style="--c:var(--seg-ship)">送料・梱包</span>
+            <span style="--c:var(--seg-fee)">手数料</span>
+            <span style="--c:var(--seg-profit)">利益</span>
+          </div>
+          <dl class="rows" id="sellRows"></dl>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>ほしい利益から売値を逆算する</h2>
+      <p class="lead">上の仕入れ値・送料・手数料率を使って、「最低いくらで売れればいいか」を出します。開始価格や即決価格を決めるときの目安になります。</p>
+      <div class="cols">
+        <div class="fields">
+          <div class="field">
+            <label for="want">ほしい利益</label>
+            <div class="yen"><span>¥</span><input id="want" type="number" inputmode="numeric" min="0" step="1"></div>
+          </div>
+        </div>
+        <div class="result" aria-live="polite">
+          <span class="label">この金額以上で売れればOK</span>
+          <div class="big" id="need">—</div>
+          <dl class="rows" id="needRows"></dl>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>出品のコツ</h2>
+      <ul class="tips">
+        <li><b>終了日時は人が多い時間に。</b>一般的には日曜〜平日の夜21時〜23時ごろが見る人が多いと言われています(公式の数字ではなく、よく言われる目安です)。</li>
+        <li><b>写真は1枚目が勝負。</b>検索結果に出るのは1枚目だけです。明るい場所で、商品全体がわかる写真を選びましょう。</li>
+        <li><b>送料は先に調べておく。</b>サイズと重さで送料が決まります。送料で利益がなくなる失敗がいちばん多いです。</li>
+        <li><b>傷や汚れは正直に書く。</b>後のトラブルと悪い評価を防げます。</li>
+      </ul>
+    </section>
+  </div>
+
+  <!-- 相場 -->
+  <div class="panel" id="p-market" role="tabpanel" aria-labelledby="tab-market" hidden>
+    <section class="card soon-card">
+      <h2>相場を調べる(第2段階で作ります)</h2>
+      <p class="lead">ヤフオクの「落札相場」ページで見た価格を貼り付けると、次のことがわかるようにする予定です。</p>
+      <ol>
+        <li>平均と中央値(真ん中の値段)</li>
+        <li>いちばんよく売れている価格帯のグラフ</li>
+        <li>高すぎる・安すぎる例外を除いた「狙い目の上限額」</li>
+        <li>結果を「入札する」「出品する」の計算にそのまま送る機能</li>
+      </ol>
+    </section>
+  </div>
+</div>
+
+<script>
+(function () {
+  var SAMPLE = {
+    budget: 32000, shipIn: 1200, resell: 38000, resFee: 10, resShip: 1200, goal: 4000,
+    cur: 26500, price: 38000, cost: 28000, shipOut: 1200, pack: 150, fee: 10, want: 5000,
+    bidMode: "self", tab: "bid"
+  };
+  var KEY = "auction-note-v1";
+  var state = {};
+
+  function load() {
+    try { var s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s) return s; } catch (e) {}
+    return null;
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+  var numIds = ["budget", "shipIn", "resell", "resFee", "resShip", "goal", "cur", "price", "cost", "shipOut", "pack", "fee", "want"];
+
+  function n(id) { var v = parseFloat($(id).value); return isFinite(v) ? v : 0; }
+  function yen(v) {
+    var r = Math.round(v);
+    return (r < 0 ? "−" : "") + "¥" + Math.abs(r).toLocaleString("ja-JP");
+  }
+  function row(label, value, cls) {
+    return '<div' + (cls ? ' class="' + cls + '"' : '') + '><dt>' + label + '</dt><dd>' + value + '</dd></div>';
+  }
+  // ヤフオクの入札単位
+  function increment(p) {
+    if (p < 1000) return 10;
+    if (p < 5000) return 100;
+    if (p < 10000) return 250;
+    if (p < 50000) return 500;
+    return 1000;
+  }
+  // 手数料は1円未満切り捨て
+  function feeOf(price, rate) { return Math.floor(price * rate / 100); }
+
+  function setPill(el, ok, text) {
+    el.hidden = false;
+    el.className = "pill " + (ok ? "good" : "bad");
+    el.textContent = text;
+  }
+
+  function calcBid() {
+    var mode = $("modeResale").checked ? "resale" : "self";
+    document.querySelectorAll("[data-mode]").forEach(function (el) { el.hidden = el.dataset.mode !== mode; });
+    var shipIn = n("shipIn"), limit, rows = "";
+    if (mode === "self") {
+      var budget = n("budget");
+      limit = budget - shipIn;
+      rows += row("予算(送料込み)", yen(budget));
+      rows += row("買うときの送料", "−" + yen(shipIn));
+      rows += row("入札上限", yen(limit), "total");
+    } else {
+      var resell = n("resell"), rate = n("resFee"), resShip = n("resShip"), goal = n("goal");
+      var fee = feeOf(resell, rate);
+      limit = resell - fee - resShip - goal - shipIn;
+      rows += row("売れそうな価格", yen(resell));
+      rows += row("売るときの手数料(" + rate + "%)", "−" + yen(fee));
+      rows += row("売るときの送料", "−" + yen(resShip));
+      rows += row("ほしい利益", "−" + yen(goal));
+      rows += row("買うときの送料", "−" + yen(shipIn));
+      rows += row("入札上限", yen(limit), "total");
+    }
+    var big = $("bidLimit"), pill = $("bidPill"), advice = $("bidAdvice");
+    $("bidRows").innerHTML = rows;
+    if (limit <= 0) {
+      big.textContent = yen(limit);
+      big.className = "big bad";
+      setPill(pill, false, mode === "self" ? "送料だけで予算を超えています" : "この条件では利益が出ません");
+      advice.textContent = mode === "self" ? "予算を上げるか、送料の安い出品を探しましょう。" : "売値を見直すか、ほしい利益を下げてください。";
+      return;
+    }
+    big.textContent = yen(limit);
+    big.className = "big";
+    pill.hidden = true;
+    // 端数の提案:キリの良い上限額は他の人と同額になりやすい
+    var tip = "";
+    if (limit >= 1000 && limit % 1000 === 0) {
+      tip = "キリの良い金額は他の人とかぶりやすいので、予算に余裕があれば " + yen(limit + 10) + " のように少し端数をつけると、同額で負けにくくなります。";
+    } else {
+      tip = "この金額を上限としてそのまま入札すれば、抜かれない限り自動で値上げしてくれます。";
+    }
+    advice.textContent = tip;
+  }
+
+  function calcInc() {
+    var cur = n("cur");
+    var inc = increment(cur);
+    $("minBid").textContent = cur > 0 ? yen(cur + inc) : "—";
+    $("incRows").innerHTML = row("現在価格", yen(cur)) + row("入札単位", "+" + yen(inc));
+    var hit = false;
+    document.querySelectorAll("#incTable tr").forEach(function (tr) {
+      var max = tr.dataset.max === "Infinity" ? Infinity : +tr.dataset.max;
+      var on = !hit && cur > 0 && cur <= max;
+      if (on) hit = true;
+      tr.classList.toggle("hit", on);
+    });
+  }
+
+  function calcSell() {
+    var price = n("price"), cost = n("cost"), ship = n("shipOut"), pack = n("pack"), rate = n("fee");
+    var fee = feeOf(price, rate);
+    var payout = price - fee;
+    var profit = payout - ship - pack - cost;
+    var margin = price > 0 ? profit / price * 100 : 0;
+    var big = $("profit");
+    big.textContent = yen(profit);
+    big.className = "big " + (profit > 0 ? "good" : "bad");
+    setPill($("profitPill"), profit > 0, profit > 0 ? "利益率 " + margin.toFixed(1) + "%" : "赤字です");
+    $("sellRows").innerHTML =
+      row("落札価格", yen(price)) +
+      row("落札手数料(" + rate + "%)", "−" + yen(fee)) +
+      row("入金される額", yen(payout), "total") +
+      row("送料", "−" + yen(ship)) +
+      row("梱包材・その他", "−" + yen(pack)) +
+      row("仕入れ値", "−" + yen(cost)) +
+      row("利益", yen(profit), "total");
+    // 内訳バー(落札価格を100%として)
+    var parts = [[cost, "--seg-cost"], [ship + pack, "--seg-ship"], [fee, "--seg-fee"], [Math.max(profit, 0), "--seg-profit"]];
+    var total = parts.reduce(function (s, p) { return s + Math.max(p[0], 0); }, 0) || 1;
+    $("bar").innerHTML = parts.map(function (p) {
+      return '<i style="width:' + (Math.max(p[0], 0) / total * 100) + '%;background:var(' + p[1] + ')"></i>';
+    }).join("");
+    document.querySelectorAll(".chip[data-fee]").forEach(function (c) { c.classList.toggle("on", +c.dataset.fee === rate); });
+
+    // 逆算:利益 = 価格 − floor(価格×率) − 費用 を満たす最小の価格(10円単位)
+    var want = n("want"), costs = cost + ship + pack;
+    var need = rate >= 100 ? Infinity : Math.ceil((want + costs) / (1 - rate / 100) / 10) * 10;
+    while (isFinite(need) && need - 10 >= 0 && (need - 10) - feeOf(need - 10, rate) - costs >= want) need -= 10;
+    $("need").textContent = isFinite(need) ? yen(need) : "—";
+    $("needRows").innerHTML = isFinite(need)
+      ? row("手数料(" + rate + "%)", "−" + yen(feeOf(need, rate))) +
+        row("仕入れ・送料・梱包", "−" + yen(costs)) +
+        row("残る利益", yen(need - feeOf(need, rate) - costs), "total")
+      : "";
+  }
+
+  function calcAll() { calcBid(); calcInc(); calcSell(); }
+
+  function readState() {
+    numIds.forEach(function (id) { state[id] = $(id).value; });
+    state.bidMode = $("modeResale").checked ? "resale" : "self";
+  }
+  function applyState(s) {
+    numIds.forEach(function (id) { $(id).value = s[id] != null ? s[id] : SAMPLE[id]; });
+    (s.bidMode === "resale" ? $("modeResale") : $("modeSelf")).checked = true;
+    showTab(s.tab || "bid", false);
+  }
+
+  function showTab(name, persist) {
+    ["bid", "sell", "market"].forEach(function (t) {
+      $("tab-" + t).setAttribute("aria-selected", String(t === name));
+      $("p-" + t).hidden = t !== name;
+    });
+    state.tab = name;
+    if (persist !== false) save();
+  }
+
+  document.querySelectorAll("nav.tabs button").forEach(function (b) {
+    b.addEventListener("click", function () { showTab(b.id.replace("tab-", "")); });
+  });
+  document.addEventListener("input", function () { readState(); calcAll(); save(); });
+  document.addEventListener("change", function () { readState(); calcAll(); save(); });
+  document.querySelectorAll(".chip[data-fee]").forEach(function (c) {
+    c.addEventListener("click", function () { $("fee").value = c.dataset.fee; readState(); calcAll(); save(); });
+  });
+  $("resetBtn").addEventListener("click", function () {
+    var tab = state.tab;
+    state = Object.assign({}, SAMPLE, { tab: tab });
+    applyState(state); calcAll(); save();
+  });
+
+  var saved = load();
+  state = Object.assign({}, SAMPLE, saved || {});
+  var hash = (location.hash || "").slice(1);
+  if (["bid", "sell", "market"].indexOf(hash) >= 0) state.tab = hash;
+  applyState(state);
+  calcAll();
+})();
+</script>
+<!-- APP END -->
+</body>
+</html>
