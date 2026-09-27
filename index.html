@@ -138,7 +138,6 @@ nav.tabs button:focus-visible, .chip:focus-visible, input:focus-visible, .seg la
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-nav.tabs .soon { font-weight: 500; font-size: 11px; opacity: 0.8; }
 
 .panel { display: grid; gap: 16px; padding-top: 16px; }
 
@@ -280,9 +279,142 @@ dl.rows > div.total dt { color: var(--ink); }
 .inc-table td:last-child { text-align: right; font-family: var(--font-num); }
 .inc-table tr.hit td { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
 
-.soon-card ol { margin: 0; padding-left: 1.3em; display: grid; gap: 6px; max-width: 65ch; }
 .sample-flag { font-size: 12px; color: var(--muted); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .sample-flag button { font: inherit; font-size: 12px; background: none; border: 0; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; }
+
+/* 相場 */
+.wish-add { display: flex; gap: 8px; flex-wrap: wrap; }
+.wish-add .text {
+  flex: 1 1 220px;
+  min-width: 0;
+  font: inherit;
+  font-size: 15px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.wish-add .text:focus { outline: none; border-color: var(--accent); }
+.btn {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.danger { border-color: var(--bad); color: var(--bad); background: transparent; }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.wish-list { display: grid; gap: 6px; }
+.wish {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 2px 12px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+.wish[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.wish:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wish .kw { font-weight: 700; overflow-wrap: anywhere; }
+.wish .meta { font-size: 12px; color: var(--muted); grid-column: 1; }
+.wish .med { grid-row: 1 / span 2; grid-column: 2; font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: 700; }
+.tag { font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--line); color: var(--muted); margin-left: 6px; vertical-align: 2px; }
+
+.steps { margin: 0; padding-left: 1.3em; display: grid; gap: 10px; }
+.steps > li::marker { font-weight: 700; color: var(--accent); }
+.steps .how { font-size: 13px; color: var(--muted); margin: 2px 0 8px; }
+textarea#paste {
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  font-family: var(--font-num);
+  font-size: 13px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--ink);
+}
+textarea#paste:focus { outline: none; border-color: var(--accent); }
+.check { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.msg { font-size: 13px; margin: 0; }
+.msg.bad { color: var(--bad); }
+.msg.good { color: var(--good); }
+
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+@media (max-width: 520px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+.stat { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+.stat span { font-size: 12px; color: var(--muted); }
+.stat b { font-family: var(--font-num); font-size: 17px; font-variant-numeric: tabular-nums; }
+
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .axis { fill: var(--muted); font-family: var(--font-num); font-size: 11px; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .binbar { fill: var(--accent); opacity: 0.85; }
+.chart .binhit { fill: transparent; cursor: default; }
+.chart .binhit:hover + .binbar, .chart g.on .binbar { opacity: 1; }
+.chart .mark { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.chart .marklabel { fill: var(--ink); font-size: 11px; font-weight: 700; }
+.tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  transform: translate(-50%, -110%);
+}
+
+.plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 640px) { .plans { grid-template-columns: 1fr; } }
+.plan {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.plan.main { border-color: var(--accent); background: var(--accent-soft); }
+.plan h3 { margin: 0; font-size: 14px; }
+.plan .price { font-family: var(--font-num); font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; }
+.plan p { margin: 0; font-size: 12px; color: var(--muted); }
+.plan .btn { margin-top: 4px; font-size: 13px; padding: 6px 10px; }
+
+.chips.prices .chip { font-family: var(--font-num); }
+.chips.prices .chip.off { text-decoration: line-through; opacity: 0.5; }
+.chips.prices .chip.out { border-style: dashed; }
+
+table.hist { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.hist th, table.hist td { padding: 5px 8px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+table.hist th:first-child, table.hist td:first-child { text-align: left; }
+table.hist th { font-weight: 500; color: var(--muted); font-size: 12px; }
+.up { color: var(--bad); }
+.down { color: var(--good); }
+details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
 </style>
 </head><!-- wrapper -->
 <body><!-- wrapper -->
@@ -293,9 +425,9 @@ dl.rows > div.total dt { color: var(--ink); }
   </header>
 
   <nav class="tabs" role="tablist">
+    <button role="tab" id="tab-market" aria-controls="p-market" aria-selected="false">相場を調べる</button>
     <button role="tab" id="tab-bid" aria-controls="p-bid" aria-selected="true">入札する</button>
     <button role="tab" id="tab-sell" aria-controls="p-sell" aria-selected="false">出品する</button>
-    <button role="tab" id="tab-market" aria-controls="p-market" aria-selected="false">相場を調べる <span class="soon">準備中</span></button>
   </nav>
 
   <p class="sample-flag" id="sampleFlag">最初に入っている数字は例です。自分の数字に書き換えると、すぐ計算し直されます。<button type="button" id="resetBtn">例の数字に戻す</button></p>
@@ -472,15 +604,65 @@ dl.rows > div.total dt { color: var(--ink); }
 
   <!-- 相場 -->
   <div class="panel" id="p-market" role="tabpanel" aria-labelledby="tab-market" hidden>
-    <section class="card soon-card">
-      <h2>相場を調べる(第2段階で作ります)</h2>
-      <p class="lead">ヤフオクの「落札相場」ページで見た価格を貼り付けると、次のことがわかるようにする予定です。</p>
-      <ol>
-        <li>平均と中央値(真ん中の値段)</li>
-        <li>いちばんよく売れている価格帯のグラフ</li>
-        <li>高すぎる・安すぎる例外を除いた「狙い目の上限額」</li>
-        <li>結果を「入札する」「出品する」の計算にそのまま送る機能</li>
+    <section class="card">
+      <h2>ほしい物リスト</h2>
+      <p class="lead">探している物を、ヤフオクで検索するときの言葉で登録します。型番まで入れると相場がぶれにくくなります。</p>
+      <form class="wish-add" id="wishForm">
+        <input class="text" id="wishInput" type="text" placeholder="例:FUJIFILM X-T3 ボディ" autocomplete="off">
+        <button class="btn" type="submit">追加</button>
+      </form>
+      <div class="wish-list" id="wishList"></div>
+    </section>
+
+    <section class="card" id="research">
+      <h2 id="rTitle"></h2>
+      <ol class="steps">
+        <li>
+          <strong>ヤフオクで落札相場を開く</strong>
+          <p class="how">過去120日ほどの「実際に売れた値段」の一覧が開きます。ジャンク品などを除きたいときは、開いたページで条件を絞ってください。</p>
+          <div class="btn-row">
+            <a class="btn" id="linkClosed" target="_blank" rel="noopener">落札相場を開く ↗</a>
+            <a class="btn ghost" id="linkOpen" target="_blank" rel="noopener">いま出品中の物を見る ↗</a>
+          </div>
+        </li>
+        <li>
+          <strong>ページの内容をコピーして貼り付ける</strong>
+          <p class="how">パソコンは Ctrl+A(Macは ⌘+A)→ Ctrl+C。スマホは文字を長押しして「すべて選択」→「コピー」。値段の数字だけを1行ずつ貼っても使えます。</p>
+          <textarea id="paste" placeholder="ここに貼り付け"></textarea>
+          <div class="btn-row" style="margin-top:8px;align-items:center">
+            <button class="btn" type="button" id="parseBtn">読み取る</button>
+            <label class="check"><input type="checkbox" id="appendChk">前のデータに追加する(2ページ目以降など)</label>
+          </div>
+          <p class="msg" id="parseMsg" aria-live="polite"></p>
+        </li>
       </ol>
+    </section>
+
+    <section class="card" id="analysis">
+      <h2>分析結果</h2>
+      <p class="lead" id="aLead"></p>
+      <div class="stats" id="stats"></div>
+      <div class="chart" id="chart"></div>
+      <h2 style="margin-top:4px">入札額の提案</h2>
+      <div class="plans" id="plans"></div>
+      <p class="note">勝てる確率は「過去の落札がその値段以下だった割合」をもとにした目安です。同じ物でも状態や付属品で値段は変わります。</p>
+      <div class="btn-row">
+        <button class="btn ghost" type="button" id="toResale">転売の「売れそうな価格」に使う(控えめな額)</button>
+      </div>
+      <details class="more">
+        <summary>読み取った値段を確認する(タップで除外・復活)</summary>
+        <p class="note" style="margin:8px 0">点線の枠は、極端に高い・安いため自動で外した値段です。</p>
+        <div class="chips prices" id="priceChips"></div>
+        <label class="check" style="margin-top:8px"><input type="checkbox" id="autoOut" checked>極端な値段を自動で外す</label>
+      </details>
+    </section>
+
+    <section class="card" id="history">
+      <h2>調べた記録</h2>
+      <div style="overflow-x:auto"><table class="hist" id="histTable"></table></div>
+      <div class="btn-row">
+        <button class="btn danger" type="button" id="delBtn">このワードを削除</button>
+      </div>
     </section>
   </div>
 </div>
@@ -490,7 +672,7 @@ dl.rows > div.total dt { color: var(--ink); }
   var SAMPLE = {
     budget: 32000, shipIn: 1200, resell: 38000, resFee: 10, resShip: 1200, goal: 4000,
     cur: 26500, price: 38000, cost: 28000, shipOut: 1200, pack: 150, fee: 10, want: 5000,
-    bidMode: "self", tab: "bid"
+    bidMode: "self", tab: "market"
   };
   var KEY = "auction-note-v1";
   var state = {};
@@ -667,6 +849,260 @@ dl.rows > div.total dt { color: var(--ink); }
   if (["bid", "sell", "market"].indexOf(hash) >= 0) state.tab = hash;
   applyState(state);
   calcAll();
+})();
+</script>
+<script>
+(function () {
+  var KEY = "auction-note-market-v1";
+  var $ = function (id) { return document.getElementById(id); };
+  var SAMPLE_PRICES = [72000, 75500, 78000, 79800, 80000, 81000, 82500, 83000, 84000, 84800, 85000, 86000,
+    86500, 88000, 88000, 89500, 90000, 92000, 94000, 98000, 15000, 131000];
+  function sampleItem() {
+    return {
+      id: "sample", kw: "FUJIFILM X-T3 ボディ", sample: true,
+      prices: SAMPLE_PRICES.map(function (v) { return { v: v, off: false }; }),
+      history: [{ date: "2026-08-20", n: 18, med: 88000 }, { date: "2026-09-20", n: 20, med: 84900 }]
+    };
+  }
+  var db;
+  try { db = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) {}
+  if (!db || !db.items) db = { items: [sampleItem()], sel: "sample", autoOut: true };
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} }
+
+  function yen(v) { return "¥" + Math.round(v).toLocaleString("ja-JP"); }
+  function today() {
+    var d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function cur() { return db.items.filter(function (i) { return i.id === db.sel; })[0] || null; }
+
+  // 貼り付けた文字から落札価格らしい数字を拾う
+  var SKIP = /送料|開始|平均|最安|最高|相場|ポイント|以上|以下|〜|～|税|クーポン|手数料/;
+  function parsePrices(text) {
+    var out = [], lines = text.split(/\r?\n/);
+    var re = /(\d{1,3}(?:,\d{3})+|\d+)\s*円/g, m;
+    lines.forEach(function (line) {
+      if (SKIP.test(line)) return;
+      re.lastIndex = 0;
+      while ((m = re.exec(line))) {
+        var v = +m[1].replace(/,/g, "");
+        if (v > 0) out.push(v);
+      }
+    });
+    if (!out.length && !/円/.test(text)) {
+      lines.forEach(function (line) {
+        var t = line.replace(/[¥￥,\s]/g, "");
+        if (/^\d+$/.test(t) && +t > 0) out.push(+t);
+      });
+    }
+    return out;
+  }
+
+  function quantile(sorted, q) {
+    if (!sorted.length) return 0;
+    var pos = (sorted.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+  }
+  // 極端な値(四分位範囲の1.5倍より外)を判定
+  function fences(values) {
+    var s = values.slice().sort(function (a, b) { return a - b; });
+    var q1 = quantile(s, 0.25), q3 = quantile(s, 0.75), iqr = q3 - q1;
+    return [q1 - 1.5 * iqr, q3 + 1.5 * iqr];
+  }
+  function analyze(item) {
+    var manual = item.prices.filter(function (p) { return !p.off; }).map(function (p) { return p.v; });
+    var f = fences(manual);
+    var isOut = function (v) { return db.autoOut && manual.length >= 5 && (v < f[0] || v > f[1]); };
+    var used = manual.filter(function (v) { return !isOut(v); }).sort(function (a, b) { return a - b; });
+    return {
+      used: used, isOut: isOut, total: item.prices.length,
+      p25: quantile(used, 0.25), med: quantile(used, 0.5), p75: quantile(used, 0.75),
+      min: used[0] || 0, max: used[used.length - 1] || 0,
+      avg: used.length ? used.reduce(function (a, b) { return a + b; }, 0) / used.length : 0
+    };
+  }
+  function roundBid(v) { return Math.floor(v / 10) * 10; }
+
+  function renderList() {
+    $("wishList").innerHTML = db.items.map(function (it) {
+      var h = it.history[it.history.length - 1];
+      return '<button type="button" class="wish" data-id="' + esc(it.id) + '" aria-pressed="' + (it.id === db.sel) + '">' +
+        '<span class="kw">' + esc(it.kw) + (it.sample ? '<span class="tag">例</span>' : '') + '</span>' +
+        '<span class="meta">' + (h ? h.date + " に調査・" + h.n + "件" : "まだ調べていません") + '</span>' +
+        '<span class="med">' + (h ? yen(h.med) : "—") + '</span></button>';
+    }).join("") || '<p class="note">まだ登録がありません。上の欄から追加してください。</p>';
+  }
+
+  function renderChart(a) {
+    var box = $("chart");
+    if (a.used.length < 2 || a.max === a.min) { box.innerHTML = ""; return; }
+    var W = 360, H = 180, L = 4, R = 4, T = 22, B = 26;
+    var nb = Math.max(5, Math.min(12, Math.ceil(Math.sqrt(a.used.length)) + 2));
+    var step = (a.max - a.min) / nb, bins = [];
+    for (var i = 0; i < nb; i++) bins.push({ lo: a.min + step * i, hi: a.min + step * (i + 1), n: 0 });
+    a.used.forEach(function (v) { var k = Math.min(nb - 1, Math.floor((v - a.min) / step)); bins[k].n++; });
+    var maxN = Math.max.apply(null, bins.map(function (b) { return b.n; }));
+    var x = function (v) { return L + (v - a.min) / (a.max - a.min) * (W - L - R); };
+    var y = function (n) { return T + (H - T - B) * (1 - n / maxN); };
+    var bw = (W - L - R) / nb, svg = "";
+    svg += '<line class="grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + (H - B) + '" y2="' + (H - B) + '"/>';
+    bins.forEach(function (b, i) {
+      var bx = L + bw * i + 1, w = bw - 2, top = y(b.n), h = H - B - top;
+      var r = Math.min(4, w / 2, h);
+      var path = b.n ? 'M' + bx + ',' + (H - B) + 'V' + (top + r) + 'Q' + bx + ',' + top + ' ' + (bx + r) + ',' + top +
+        'H' + (bx + w - r) + 'Q' + (bx + w) + ',' + top + ' ' + (bx + w) + ',' + (top + r) + 'V' + (H - B) + 'Z' : '';
+      svg += '<g data-tip="' + yen(b.lo) + '〜' + yen(b.hi) + ':' + b.n + '件" data-x="' + (bx + w / 2) + '" data-y="' + top + '">' +
+        '<rect class="binhit" x="' + (L + bw * i) + '" y="' + T + '" width="' + bw + '" height="' + (H - T - B) + '"/>' +
+        (path ? '<path class="binbar" d="' + path + '"/>' : '') + '</g>';
+    });
+    [[a.p25, "安く"], [a.med, "標準"], [a.p75, "確実"]].forEach(function (m, i) {
+      var mx = x(m[0]);
+      svg += '<line class="mark" x1="' + mx + '" x2="' + mx + '" y1="' + (T - 4) + '" y2="' + (H - B) + '"/>' +
+        '<text class="marklabel" x="' + mx + '" y="' + (T - 8 - (i === 1 ? 0 : 0)) + '" text-anchor="' + (i === 0 ? "end" : i === 2 ? "start" : "middle") + '">' + m[1] + '</text>';
+    });
+    svg += '<text class="axis" x="' + L + '" y="' + (H - 8) + '">' + yen(a.min) + '</text>';
+    svg += '<text class="axis" x="' + (W - R) + '" y="' + (H - 8) + '" text-anchor="end">' + yen(a.max) + '</text>';
+    box.innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="落札価格の分布">' + svg + '</svg><div class="tip" hidden></div>';
+    var tip = box.querySelector(".tip"), el = box.querySelector("svg");
+    box.querySelectorAll("g[data-tip]").forEach(function (g) {
+      function show() {
+        var sc = el.getBoundingClientRect().width / W;
+        tip.textContent = g.dataset.tip;
+        tip.style.left = (+g.dataset.x * sc) + "px";
+        tip.style.top = (+g.dataset.y * sc) + "px";
+        tip.hidden = false;
+        g.classList.add("on");
+      }
+      function hide() { tip.hidden = true; g.classList.remove("on"); }
+      g.addEventListener("mouseenter", show);
+      g.addEventListener("mouseleave", hide);
+      g.addEventListener("touchstart", show, { passive: true });
+    });
+  }
+
+  function renderDetail() {
+    var it = cur();
+    ["research", "analysis", "history"].forEach(function (id) { $(id).hidden = !it; });
+    if (!it) return;
+    $("rTitle").textContent = "「" + it.kw + "」を調べる";
+    var q = encodeURIComponent(it.kw);
+    $("linkClosed").href = "https://auctions.yahoo.co.jp/closedsearch/closedsearch?p=" + q;
+    $("linkOpen").href = "https://auctions.yahoo.co.jp/search/search?p=" + q;
+
+    var a = analyze(it);
+    $("analysis").hidden = !it.prices.length;
+    $("autoOut").checked = db.autoOut;
+    if (it.prices.length) {
+      var few = a.used.length < 5;
+      $("aLead").innerHTML = (it.sample ? "<b>これは例のデータです。</b>" : "") + a.used.length + "件の落札価格から分析しました" +
+        (a.total > a.used.length ? "(" + (a.total - a.used.length) + "件は除外)" : "") + "。" +
+        (few ? '<span style="color:var(--bad)">件数が少ないので、あくまで参考にしてください。</span>' : "");
+      $("stats").innerHTML = [["中央値", a.med], ["平均", a.avg], ["最安", a.min], ["最高", a.max]].map(function (s) {
+        return '<div class="stat"><span>' + s[0] + '</span><b>' + yen(s[1]) + '</b></div>';
+      }).join("");
+      renderChart(a);
+      var plans = [
+        ["安く狙う", a.p25, "過去の落札の約25%がこの値段以下。何度か挑戦するつもりで。", false],
+        ["標準", a.med, "過去の落札のちょうど半分がこの値段以下。まずはここから。", true],
+        ["確実に取る", a.p75, "過去の落札の約75%がこの値段以下。早く確実にほしいとき。", false]
+      ];
+      $("plans").innerHTML = plans.map(function (p) {
+        var v = roundBid(p[1]);
+        return '<div class="plan' + (p[3] ? " main" : "") + '"><h3>' + p[0] + '</h3><div class="price">' + yen(v) + '</div><p>' + p[2] + '</p>' +
+          '<button type="button" class="btn' + (p[3] ? "" : " ghost") + '" data-bid="' + v + '">この額で入札計算へ</button></div>';
+      }).join("");
+      $("priceChips").innerHTML = it.prices.map(function (p, i) {
+        var cls = p.off ? " off" : a.isOut(p.v) ? " out" : "";
+        return '<button type="button" class="chip' + cls + '" data-i="' + i + '">' + yen(p.v) + '</button>';
+      }).join("");
+    }
+    var hs = it.history.slice().reverse();
+    $("histTable").innerHTML = '<tr><th>調べた日</th><th>件数</th><th>中央値</th><th>前回との差</th></tr>' +
+      (hs.length ? hs.map(function (h, i) {
+        var prev = hs[i + 1], diff = prev ? h.med - prev.med : null;
+        return '<tr><td>' + h.date + '</td><td>' + h.n + '</td><td>' + yen(h.med) + '</td><td class="' +
+          (diff > 0 ? "up" : diff < 0 ? "down" : "") + '">' + (diff == null ? "—" : (diff > 0 ? "+" : diff < 0 ? "−" : "±") + yen(Math.abs(diff)).slice(0)) + '</td></tr>';
+      }).join("") : '<tr><td colspan="4">まだ記録がありません</td></tr>');
+    $("delBtn").textContent = "このワードを削除";
+    $("delBtn").dataset.armed = "";
+  }
+
+  function render() { renderList(); renderDetail(); }
+
+  // 入札タブの値を書き換えて移動
+  function sendToBid(fields, mode) {
+    $(mode === "resale" ? "modeResale" : "modeSelf").checked = true;
+    Object.keys(fields).forEach(function (k) { $(k).value = fields[k]; });
+    $(Object.keys(fields)[0]).dispatchEvent(new Event("input", { bubbles: true }));
+    $("tab-bid").click();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  $("wishForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var kw = $("wishInput").value.trim();
+    if (!kw) return;
+    var id = "w" + Date.now();
+    db.items.unshift({ id: id, kw: kw, prices: [], history: [] });
+    db.sel = id;
+    $("wishInput").value = "";
+    save(); render();
+  });
+  $("wishList").addEventListener("click", function (e) {
+    var b = e.target.closest(".wish");
+    if (!b) return;
+    db.sel = b.dataset.id; $("parseMsg").textContent = ""; save(); render();
+  });
+  $("parseBtn").addEventListener("click", function () {
+    var it = cur(), msg = $("parseMsg");
+    if (!it) return;
+    var found = parsePrices($("paste").value);
+    if (!found.length) {
+      msg.className = "msg bad";
+      msg.textContent = "値段が見つかりませんでした。落札相場ページの内容をまるごと貼り付けたか確認してください。";
+      return;
+    }
+    var list = found.map(function (v) { return { v: v, off: false }; });
+    it.prices = $("appendChk").checked && !it.sample ? it.prices.concat(list) : list;
+    if (it.sample) { it.sample = false; it.history = []; }
+    var a = analyze(it);
+    var h = { date: today(), n: a.used.length, med: roundBid(a.med) };
+    var last = it.history[it.history.length - 1];
+    if (last && last.date === h.date) it.history[it.history.length - 1] = h; else it.history.push(h);
+    msg.className = "msg good";
+    msg.textContent = found.length + "件の値段を読み取りました。下の分析結果を確認してください。";
+    $("paste").value = "";
+    save(); render();
+    $("analysis").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+  $("plans").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-bid]");
+    if (!b) return;
+    var ship = parseFloat($("shipIn").value) || 0;
+    sendToBid({ budget: +b.dataset.bid + ship }, "self");
+  });
+  $("toResale").addEventListener("click", function () {
+    var it = cur(); if (!it) return;
+    sendToBid({ resell: roundBid(analyze(it).p25) }, "resale");
+  });
+  $("priceChips").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-i]"), it = cur();
+    if (!b || !it) return;
+    var p = it.prices[+b.dataset.i];
+    p.off = !p.off;
+    save(); renderDetail(); $("priceChips").closest("details").open = true;
+  });
+  $("autoOut").addEventListener("change", function () { db.autoOut = $("autoOut").checked; save(); renderDetail(); });
+  $("delBtn").addEventListener("click", function () {
+    var b = $("delBtn");
+    if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "もう一度押すと削除します"; return; }
+    db.items = db.items.filter(function (i) { return i.id !== db.sel; });
+    db.sel = db.items[0] ? db.items[0].id : null;
+    save(); render();
+  });
+
+  render();
 })();
 </script>
 <!-- APP END -->
