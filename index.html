@@ -674,9 +674,10 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
         </li>
         <li>
           <strong>ここに戻って貼り付ける</strong>
-          <p class="how">パソコンは、このタブを開いて Ctrl+V(Macは ⌘+V)を押すだけです。スマホは下の枠を長押しして「ペースト」します。貼り付けると自動で読み取り、同じワードのリストに振り分けます。</p>
+          <p class="how">パソコンは、このタブを開いて Ctrl+V(Macは ⌘+V)を押すだけです。スマホは「貼り付けて読み取る」を押し、出てきた「ペースト」をタップします(うまくいかないときは下の枠を長押しして「ペースト」)。貼り付けると自動で読み取り、同じワードのリストに振り分けます。</p>
           <textarea id="paste" placeholder="ここに貼り付け(値段の数字を1行ずつ入れても使えます)"></textarea>
           <div class="btn-row" style="margin-top:8px;align-items:center">
+            <button class="btn" type="button" id="pasteBtn">貼り付けて読み取る</button>
             <button class="btn ghost" type="button" id="parseBtn">読み取る</button>
             <label class="check"><input type="checkbox" id="appendChk">前のデータに追加する(2ページ目以降など)</label>
           </div>
@@ -702,6 +703,11 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
           <div>
             <strong style="font-size:14px">iPhone(Safari)</strong>
             <p class="how">①「ボタンのコードをコピー」を押す ② 適当なページで共有ボタン →「ブックマークを追加」→ 名前を「作戦ノートに取り込む」にして保存 ③ ブックマーク一覧でそのブックマークを「編集」し、アドレスを消してコピーしたコードを貼り付け。使うときは、ヤフオクのページでブックマーク一覧から選びます。</p>
+          </div>
+          <div>
+            <strong style="font-size:14px">iPhone(Brave)</strong>
+            <p class="how">①「ボタンのコードをコピー」を押す ② 適当なページで、画面下の「…」(メニュー)→「ブックマークを追加」→ 名前を「作戦ノートに取り込む」にして保存 ③「…」→「ブックマーク」→「編集」でそのブックマークを選び、アドレス(URL)を消してコピーしたコードを貼り付けて保存。使うときは、ヤフオクのページで「…」→「ブックマーク」→「作戦ノートに取り込む」を選びます。</p>
+            <p class="how">自動でコピーできなかったときは、ページに「コピーする」ボタンが出るので、それを押してください。Braveのシールド(保護機能)は切らなくて大丈夫です。</p>
           </div>
           <div>
             <strong style="font-size:14px">Android(Chrome)</strong>
@@ -1243,16 +1249,62 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
   });
 
   // ヤフオクのページで押すブックマークレット(表示中のページの文字をコピーするだけ)
-  var BM_SRC = "(function(){" +
-    "if(!/auctions\\.yahoo\\.co\\.jp/.test(location.hostname)){alert('ヤフオクのページで押してください');return;}" +
-    "var kw='';try{kw=new URL(location.href).searchParams.get('p')||'';}catch(e){}" +
-    "var t='AUCNOTE1\\nkw='+kw+'\\n'+document.body.innerText;" +
-    "var ok='コピーしました。作戦ノートに戻って貼り付けてください。';" +
-    "function fb(){var a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;inset:10%;width:80%;height:60%;z-index:2147483647;font-size:12px';document.body.appendChild(a);a.focus();a.select();" +
-    "var r=false;try{r=document.execCommand('copy');}catch(e){}" +
-    "if(r){a.remove();alert(ok);}else{alert('自動でコピーできませんでした。表示された枠の中を長押しして「すべて選択」→「コピー」してください。');}}" +
-    "if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){alert(ok);},fb);}else{fb();}" +
-    "})();";
+  // iPhone(Safari・Brave)ではブックマークから実行すると自動コピーが拒否されることがあるので、
+  // そのときはページ上に「コピーする」ボタンを出し、押してもらってコピーする。
+  // 文字列化して使うため、この関数の中では // コメントを使わず、文は必ず ; で終える。
+  function bookmarklet() {
+    if (!/auctions\.yahoo\.co\.jp/.test(location.hostname)) { alert("ヤフオクのページで押してください"); return; }
+    var kw = "";
+    try { kw = new URL(location.href).searchParams.get("p") || ""; } catch (e) {}
+    var t = "AUCNOTE1\nkw=" + kw + "\n" + document.body.innerText;
+    var ok = "コピーしました。作戦ノートに戻って貼り付けてください。";
+    function ec() {
+      var a = document.createElement("textarea");
+      a.value = t; a.setAttribute("readonly", "");
+      a.style.cssText = "position:fixed;top:0;left:0;opacity:0;font-size:16px";
+      document.body.appendChild(a); a.focus(); a.select(); a.setSelectionRange(0, t.length);
+      var r = false;
+      try { r = document.execCommand("copy"); } catch (e) {}
+      a.remove();
+      return r;
+    }
+    function panel() {
+      var d = document.createElement("div");
+      d.style.cssText = "position:fixed;inset:0;z-index:2147483647;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px";
+      var b = document.createElement("div");
+      b.style.cssText = "background:#fff;color:#222;border-radius:12px;padding:16px;width:100%;max-width:420px;font:15px/1.6 sans-serif;text-align:center";
+      var p = document.createElement("p");
+      p.style.cssText = "margin:0 0 12px";
+      p.textContent = "下の「コピーする」を押すと、ページの内容をコピーします。";
+      var c = document.createElement("button");
+      c.textContent = "コピーする";
+      c.style.cssText = "font:700 16px sans-serif;padding:12px 24px;border:0;border-radius:8px;background:#2563eb;color:#fff;margin:0 4px";
+      var x = document.createElement("button");
+      x.textContent = "閉じる";
+      x.style.cssText = "font:16px sans-serif;padding:12px 16px;border:1px solid #999;border-radius:8px;background:#fff;color:#222;margin:0 4px";
+      function done() { d.remove(); alert(ok); }
+      function manual() {
+        p.textContent = "自動でコピーできませんでした。下の枠を長押しして「すべてを選択」→「コピー」してください。";
+        c.remove();
+        var a = document.createElement("textarea");
+        a.value = t; a.readOnly = true;
+        a.style.cssText = "display:block;width:100%;height:40vh;box-sizing:border-box;margin:0 0 12px;font-size:16px";
+        b.insertBefore(a, x);
+      }
+      c.onclick = function () {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(t).then(done, function () { if (ec()) done(); else manual(); });
+        } else if (ec()) { done(); } else { manual(); }
+      };
+      x.onclick = function () { d.remove(); };
+      b.appendChild(p); b.appendChild(c); b.appendChild(x); d.appendChild(b);
+      document.body.appendChild(d);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(function () { alert(ok); }, function () { if (ec()) alert(ok); else panel(); });
+    } else if (ec()) { alert(ok); } else { panel(); }
+  }
+  var BM_SRC = "(" + bookmarklet.toString().replace(/\s*\n\s*/g, " ") + ")();";
   var BM_URL = "javascript:" + encodeURIComponent(BM_SRC);
   $("bmLink").setAttribute("href", BM_URL);
   $("bmLink").addEventListener("click", function (e) {
@@ -1337,6 +1389,24 @@ details.more summary { cursor: pointer; font-size: 13px; color: var(--accent); }
       (junkCut ? "(商品名にジャンク相当の言葉があった" + junkCut + "件は除外)" : "");
     $("analysis").scrollIntoView({ behavior: "smooth", block: "start" });
   }
+  // スマホ向け:ボタンからクリップボードを読んで取り込む(iPhoneでは「ペースト」の確認が出る)
+  $("pasteBtn").addEventListener("click", function () {
+    var msg = $("parseMsg");
+    function manual() {
+      msg.className = "msg bad";
+      msg.textContent = "ボタンから貼り付けできませんでした。下の枠を長押しして「ペースト」してください。";
+      $("paste").focus();
+    }
+    if (!navigator.clipboard || !navigator.clipboard.readText) { manual(); return; }
+    navigator.clipboard.readText().then(function (t) {
+      if (!t || !t.trim()) {
+        msg.className = "msg bad";
+        msg.textContent = "コピーされた内容が空でした。ヤフオクのページで取り込みボタンを押してから戻ってください。";
+        return;
+      }
+      importText(t);
+    }, manual);
+  });
   $("paste").addEventListener("paste", function () {
     setTimeout(function () { if ($("paste").value.trim()) importText($("paste").value); }, 0);
   });
